@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.score.dao.UserRankScoreDao">
+
+    <insert id="addList" parameterType="java.util.List">
+        INSERT INTO user_rank_score(id,rank_id,score_name,score_code,score_val,is_enable,create_time,create_by,update_time,update_by,remark,is_del)VALUES
+        <foreach collection="userRankScores" item="userRankScore" separator=",">
+            (#{userRankScore.id},#{userRankScore.rankId},#{userRankScore.scoreName},#{userRankScore.scoreCode},#{userRankScore.scoreVal},#{userRankScore.isEnable},#{userRankScore.createTime},#{userRankScore.createBy},#{userRankScore.updateTime},#{userRankScore.updateBy},#{userRankScore.remark},#{userRankScore.isDel})
+        </foreach>
+    </insert>
+
+    <update id="updateList" parameterType="java.util.List">
+        update user_rank_score
+        <trim prefix="set" suffixOverrides=",">
+            <trim prefix="score_name = case" suffix="end,">
+                <foreach collection="userRankScores" item="userRankScore" index="index">
+                    when id=#{userRankScore.id} then #{userRankScore.scoreName}
+                </foreach>
+            </trim>
+
+            <trim prefix="score_val = case" suffix="end,">
+                <foreach collection="userRankScores" item="userRankScore" index="index">
+                    when id=#{userRankScore.id} then #{userRankScore.scoreVal}
+                </foreach>
+            </trim>
+
+            <trim prefix=" is_enable = case" suffix="end,">
+                <foreach collection="userRankScores" item="userRankScore" index="index">
+                    when id=#{userRankScore.id} then #{userRankScore.isEnable}
+                </foreach>
+            </trim>
+
+            <trim prefix=" update_by = case" suffix="end,">
+                <foreach collection="userRankScores" item="userRankScore" index="index">
+                    when id=#{userRankScore.id} then #{userRankScore.updateBy}
+                </foreach>
+            </trim>
+
+            <trim prefix=" update_time = case" suffix="end,">
+                <foreach collection="userRankScores" item="userRankScore" index="index">
+                    when id=#{userRankScore.id} then #{userRankScore.updateTime}
+                </foreach>
+            </trim>
+        </trim>
+        where
+        <foreach collection="userRankScores" separator="or" item="userRankScore" index="index" >
+            id=#{userRankScore.id}
+        </foreach>
+    </update>
+
+</mapper>

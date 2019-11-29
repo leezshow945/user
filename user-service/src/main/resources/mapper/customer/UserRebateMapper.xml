@@ -1,0 +1,444 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.customer.dao.UserRebateDao">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.jq.user.customer.entity.UserRebateEntity">
+    </resultMap>
+
+    <select id="findByUserNameAndSiteId" resultType="java.util.Map">
+        SELECT
+            CAST(u.id AS CHAR)       AS userId,
+            u.user_name              AS userName,
+            u.site_id                AS siteId,
+            ifnull(ui.real_name, '') AS realName,
+            ur.id                    AS rebateId,
+            ur.gpc_rebate            AS gpcRebate,
+            ur.is_proxy              AS isProxy,
+            ur.flc_rebate            AS flcRebate,
+            ur.tycp_rebate           AS tycpRebate,
+            ur.qt_rebate             AS qtRebate,
+            ur.ty_rebate             AS tyRebate,
+            ur.lhc_rebate3           AS lhcRebate3,
+            ur.lhc_rebate2           AS lhcRebate2,
+            ur.lhc_rebate1           AS lhcRebate1,
+            ur.lhc_rebate0           AS lhcRebate0,
+            ur.dpc_rebate            AS dpcRebate
+        FROM `user_rebate` ur
+            LEFT JOIN user u ON u.id = ur.id
+            LEFT JOIN user_info ui ON u.id = ui.id
+        WHERE is_del = 0 AND is_proxy = 1 AND ur.site_id = #{siteId} AND u.user_name = #{userName}
+    </select>
+
+    <select id="getUserRebateByUserNameAndSiteIdApi" resultType="java.util.Map">
+        SELECT
+            CAST(u.id AS CHAR)       AS userId,
+            u.user_name              AS userName,
+            u.site_id                AS siteId,
+            ifnull(ui.real_name, '') AS realName,
+            ur.id                    AS rebateId,
+            ur.gpc_rebate            AS gpcRebate,
+            ur.is_proxy              AS isProxy,
+            ur.flc_rebate            AS flcRebate,
+            ur.tycp_rebate           AS tycpRebate,
+            ur.qt_rebate             AS qtRebate,
+            ur.ty_rebate             AS tyRebate,
+            ur.lhc_rebate3           AS lhcRebate3,
+            ur.lhc_rebate2           AS lhcRebate2,
+            ur.lhc_rebate1           AS lhcRebate1,
+            ur.lhc_rebate0           AS lhcRebate0,
+            ur.dpc_rebate            AS dpcRebate
+        FROM `user` u
+            LEFT JOIN user_rebate ur ON u.id = ur.id
+            LEFT JOIN user_info ui ON u.id = ui.id
+        WHERE is_del = 0 AND u.site_id = #{siteId} AND u.user_name = #{userName}
+    </select>
+
+    <select id="getUserByIdList" resultType="com.jq.user.customer.dto.UserRebateDTO">
+        select u.id as userId,
+        u.user_name as userName,
+        ur.is_proxy as isProxy,
+        ur.gpc_rebate as gpcRebate,
+        ur.flc_rebate AS flcRebate,
+        ur.tycp_rebate AS tycpRebate,
+        ur.qt_rebate AS qtRebate,
+        ur.ty_rebate AS tyRebate,
+        ur.lhc_rebate3 AS lhcRebate3,
+        ur.lhc_rebate2 AS lhcRebate2,
+        ur.lhc_rebate1 AS lhcRebate1,
+        ur.lhc_rebate0 AS lhcRebate0,
+        ur.dpc_rebate AS dpcRebate,
+        u.last_login_ip as lastLoginIp,
+        u.login_count as loginCount,
+        <if test="highLevelName == null or highLevelName == ''">
+            up.level as directUser,
+        </if>
+        up.high_user_name as highAccount,
+        up.high_user_id as highLevelId,
+        ifnull(upn.sub_level_count,0) as subCount,
+        u.status as status,
+        t.access_expire as accessExpire,
+        date_format(u.last_login_time, '%Y-%m-%d %H:%i:%s') as lastLoginTime,
+        date_format(u.create_time, '%Y-%m-%d %H:%i:%s') as createTime
+        from user u
+        LEFT JOIN user_rebate ur
+        on ur.id = u.id
+        LEFT JOIN user_token t ON u.id = t.id
+        LEFT JOIN (SELECT
+        high_user_id,
+        count(*) AS sub_level_count
+        FROM user_proxy
+        WHERE site_id = #{siteId} AND `level` != 0
+        GROUP BY high_user_id ) upn
+        on u.id = upn.high_user_id
+        JOIN  (
+            select
+            user_id,
+            high_user_id,
+            `level`,
+            high_user_name,
+            site_id
+            from user_proxy
+            WHERE `level`  = 1 AND user_proxy.user_id IN
+        <foreach collection="list" item="id" index="index" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+            GROUP BY user_id
+        ) up on u.id = up.user_id
+        WHERE u.is_del = 0
+    </select>
+
+
+    <select id="getSubUserList" resultType="com.jq.user.customer.entity.UserWrapper">
+        select u.id as userId,
+        u.user_name as userName,
+        ur.is_proxy as isProxy,
+        ur.gpc_rebate as gpcRebate,
+        ur.flc_rebate AS flcRebate,
+        ur.tycp_rebate AS tycpRebate,
+        ur.qt_rebate AS qtRebate,
+        ur.ty_rebate AS tyRebate,
+        ur.lhc_rebate3 AS lhcRebate3,
+        ur.lhc_rebate2 AS lhcRebate2,
+        ur.lhc_rebate1 AS lhcRebate1,
+        ur.lhc_rebate0 AS lhcRebate0,
+        ur.dpc_rebate AS dpcRebate,
+        u.last_login_ip as lastLoginIp,
+        u.login_count as loginCount,
+        <if test="map.highLevelName == null or map.highLevelName == ''">
+        up.level as directUser,
+        </if>
+        up.high_user_name as highAccount,
+        up.high_user_id as highLevelId,
+        ifnull(upn.sub_level_count,0) as subCount,
+        u.status as status,
+        t.access_expire as accessExpire,
+        date_format(u.last_login_time, '%Y-%m-%d %H:%i:%s') as lastLoginTime,
+        date_format(u.create_time, '%Y-%m-%d %H:%i:%s') as createTime
+        from user u
+        LEFT JOIN user_rebate ur
+        on ur.id = u.id
+        LEFT JOIN user_token t ON u.id = t.id
+        JOIN  (
+        select
+        user_id,
+        high_user_id,
+        `level`,
+        high_user_name,
+        site_id from user_proxy  WHERE 1=1
+        <if test="map.userName != null and map.userName != ''">
+            <if test="map.isSearchAll == null or map.isSearchAll==0">AND `level` = 1 </if>
+            <if test="map.isSearchAll==1">AND `level` != 0 </if>
+            AND user_proxy.user_name like '%${map.userName}%'
+            AND user_proxy.high_user_id = #{map.userId}
+        </if>
+        <if test="map.userName == null or map.userName == ''">
+            AND `level`  = 1
+            <if test="map.highLevelName != null and map.highLevelName !=''">
+                AND user_proxy.high_user_name = #{map.highLevelName}
+            </if>
+            <if test="map.highLevelName == null or map.highLevelName == ''">
+                AND user_proxy.high_user_id = #{map.userId}
+            </if>
+        </if>
+        GROUP BY user_id
+        )  up on u.id = up.user_id
+        LEFT JOIN (SELECT
+        high_user_id,
+        count(*) AS sub_level_count
+        FROM user_proxy
+        WHERE site_id = #{map.siteId} AND `level` != 0
+        GROUP BY high_user_id ) upn
+        on u.id = upn.high_user_id
+        WHERE u.is_del = 0  AND u.site_id = #{map.siteId}
+        <if test="map.startTime != null and map.startTime != ''">
+            AND u.create_time >= #{map.startTime}
+        </if>
+        <if test="map.endTime != null and map.endTime != ''">
+            AND u.create_time &lt;= #{map.endTime}
+        </if>
+        <if test="map.isOnLine == 1">
+            AND t.access_expire > now()
+        </if>
+        <if test="map.isOnLine == 0">
+            AND (t.access_expire &lt; now() or t.access_expire is NULL)
+        </if>
+    </select>
+
+    <select id="getUserInfoAndPathApi" resultType="map">
+        SELECT
+            u.id                  AS userId,
+            user_name             AS userName,
+            `status`,
+            ur.is_proxy           AS isProxy
+        FROM user AS u LEFT JOIN user_rebate AS ur ON u.id = ur.id
+        WHERE u.is_del = 0 AND u.user_name = #{userName} AND u.site_id = #{siteId}
+    </select>
+
+    <select id="queryUserInfoAndPathById" resultType="com.jq.user.customer.dto.UserRebateDTO">
+        SELECT
+        u.id                  AS userId,
+        user_name             AS userName,
+        u.site_id             AS siteId,
+        u.site_code           AS siteCode,
+        u.transfer_time       AS transferTime,
+        `status`,
+        ur.is_proxy           AS isProxy,
+        ur.gpc_rebate         AS gpcRebate,
+        ur.flc_rebate         AS flcRebate,
+        ur.tycp_rebate        AS tycpRebate,
+        ur.qt_rebate          AS qtRebate,
+        ur.ty_rebate          AS tyRebate,
+        ur.dpc_rebate         AS dpcRebate,
+        ur.lhc_rebate0        AS lhcRebate0,
+        ur.lhc_rebate1        AS lhcRebate1,
+        ur.lhc_rebate2        AS lhcRebate2,
+        ur.lhc_rebate3        AS lhcRebate3,
+        upl.level as level,
+        up.high_user_name as highAccount,
+        up.high_user_id as highLevelId
+        FROM user AS u LEFT JOIN user_rebate AS ur ON u.id = ur.id
+        LEFT JOIN (
+            select user_id,`level` from user_proxy
+            WHERE site_id = #{siteId}
+            AND high_user_name = 'default'
+            GROUP BY user_id
+            ) upl on upl.user_id = u.id
+        LEFT JOIN (
+            select
+            user_id,
+            high_user_id,
+            high_user_name,
+            site_id from user_proxy
+            WHERE user_proxy.site_id = #{siteId}
+            AND level = 1
+            GROUP BY user_id
+            ) up on u.id = up.user_id
+        WHERE u.is_del = 0
+        <if test="siteId != null ">
+        AND u.site_id = #{siteId}
+        </if>
+        AND u.is_demo = 0
+        AND u.id in
+        <foreach collection="list" item="ids" index="index" open="(" close=")" separator=",">
+            #{ids}
+        </foreach>
+    </select>
+
+    <select id="queryUserInfoAndPathByIdList" resultType="com.jq.user.customer.dto.UserRebateDTO">
+        SELECT
+            u.id                  AS userId,
+            user_name             AS userName,
+            u.site_id             AS siteId,
+            u.site_code           AS siteCode,
+            `status`,
+            ur.is_proxy           AS isProxy,
+            ur.gpc_rebate         AS gpcRebate,
+            ur.flc_rebate         AS flcRebate,
+            ur.tycp_rebate        AS tycpRebate,
+            ur.qt_rebate          AS qtRebate,
+            ur.ty_rebate          AS tyRebate,
+            ur.dpc_rebate         AS dpcRebate,
+            ur.lhc_rebate0        AS lhcRebate0,
+            ur.lhc_rebate1        AS lhcRebate1,
+            ur.lhc_rebate2        AS lhcRebate2,
+            ur.lhc_rebate3        AS lhcRebate3,
+            upl.level as level,
+            up.high_user_name as highAccount,
+            up.high_user_id as highLevelId
+        FROM user AS u LEFT JOIN user_rebate AS ur ON u.id = ur.id
+        LEFT JOIN (
+            select user_id,`level` from user_proxy
+            WHERE site_id = #{siteId}
+            AND high_user_name = 'default'
+            GROUP BY user_id
+            ) upl on upl.user_id = u.id
+        LEFT JOIN (
+            select
+            user_id,
+            high_user_id,
+            high_user_name,
+            site_id from user_proxy
+            WHERE user_proxy.site_id = #{siteId}
+            AND level = 1
+            GROUP BY user_id
+            ) up on u.id = up.user_id
+        WHERE u.is_del = 0
+        <if test="siteId != null">
+            AND u.site_id = #{siteId}
+        </if>
+        <if test="isProxy!=null">
+            AND ur.is_proxy = #{isProxy}
+        </if>
+        AND u.id in
+        <foreach collection="list" item="ids" index="index" open="(" close=")" separator=",">
+            #{ids}
+        </foreach>
+    </select>
+
+    <select id="queryUserInfoByUserId" resultType="map">
+        SELECT
+        lu.user_name,
+        lur.id,
+        lur.is_proxy,
+        lur.gpc_rebate,
+        lur.flc_rebate,
+        lur.tycp_rebate,
+        lur.qt_rebate,
+        lur.ty_rebate,
+        lur.lhc_rebate3,
+        lur.lhc_rebate2,
+        lur.lhc_rebate1,
+        lur.lhc_rebate0,
+        lur.dpc_rebate
+        FROM user_rebate AS lur LEFT JOIN user AS lu ON lu.id = lur.id
+        WHERE lu.is_del = 0 AND lu.is_demo = 0
+        AND lur.id in
+        <foreach collection="list" item="ids" index="index" open="(" separator="," close=")">
+            #{ids}
+        </foreach>
+    </select>
+    <select id="getUserDetail" parameterType="long" resultType="com.jq.user.customer.dto.UserRebateDTO">
+        select
+        u.user_name as userName,
+        ur.*,
+        ur.sub_level_count as subCount,
+        ur.id,
+        ur.gpc_rebate,
+        ur.flc_rebate,
+        ur.tycp_rebate,
+        ur.qt_rebate,
+        ur.ty_rebate,
+        ur.lhc_rebate3,
+        ur.lhc_rebate2,
+        ur.lhc_rebate1,
+        ur.lhc_rebate0,
+        ur.dpc_rebate,
+        ur.site_code,
+        ur.is_proxy,
+        ur.ban_rebate_time,
+        ui.real_name,
+        ui.sex,
+        u.status,
+        u.site_id,
+        u.last_login_time as lastLoginTime,
+        u.last_login_ip as lastLoginIp,
+        u.create_time as createTime,
+        ui.reg_ip as regIp,
+        ui.reg_source regSource,
+        ui.reg_url as regUrl
+        from user u
+        LEFT JOIN user_rebate ur
+            ON u.id = ur.id
+        LEFT JOIN user_info ui
+            on u.id = ui.id
+        WHERE u.is_del = 0 AND u.id = #{id}
+    </select>
+    <select id="getAllJuniorUserId" parameterType="long" resultType="long">
+        SELECT u.id FROM user u
+             JOIN (select user_id from user_proxy WHERE high_user_id = #{userId}) up
+                ON u.id = up.user_id
+            LEFT JOIN user_info ui
+            ON u.id = ui.id
+        WHERE  u.is_del = 0
+               AND u.is_demo = 0
+               AND ui.real_name IS NOT NULL
+              GROUP BY real_name
+    </select>
+
+    <select id="getEffectUserId" resultType="long">
+        SELECT min(u.id) FROM user u
+            LEFT JOIN user_rebate ur
+                ON u.id = ur.id
+            LEFT JOIN user_info ui
+                ON u.id = ui.id
+        WHERE u.is_del = 0
+            AND u.is_demo = 0
+            AND ui.real_name IS NOT NULL AND ur.id IN
+        <foreach collection="list" item="id" index="index" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+        GROUP BY real_name
+    </select>
+
+    <select id="getHighLevelIdAndRank" resultType="com.jq.user.customer.dto.UserRebateDTO">
+        SELECT
+        u.id userId,
+        up.high_user_id as highLevelId,
+        up.high_user_name as highAccount,
+        uk.rank_level,
+        uk.rank_name,
+        u.user_name,
+        u.is_demo
+        FROM user u
+        LEFT JOIN (SELECT id,user_id ,high_user_id ,user_name,high_user_name,`level`,site_id ,site_code ,create_time ,update_time
+        FROM user_proxy WHERE (user_id IN
+        <foreach collection="list" item="ids" index="index" open="(" separator="," close=")">
+            #{ids}
+        </foreach>
+        AND level = 1)) up
+        on u.id = up.user_id
+        LEFT JOIN user_rank uk on u.user_rank_id = uk.id
+        WHERE u.is_del = 0 and u.id in
+        <foreach collection="list" item="ids" index="index" open="(" separator="," close=")">
+            #{ids}
+        </foreach>
+    </select>
+    <update id="deleteBanRebateUser">
+        UPDATE user_rebate set ban_rebate_time = null
+        WHERE is_proxy = 1 AND ban_rebate_time IS NOT NULL  AND site_id = #{siteId}
+        AND id IN
+        <foreach collection="list" index="index" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </update>
+
+    <select id="getUserRebateBy" resultType="com.jq.user.customer.dto.UserRebateDTO">
+        select
+            u.id,
+            u.user_name,
+            ur.is_proxy,
+            ur.gpc_rebate,
+            ur.flc_rebate,
+            ur.tycp_rebate,
+            ur.qt_rebate,
+            ur.ty_rebate,
+            ur.lhc_rebate3,
+            ur.lhc_rebate2,
+            ur.lhc_rebate1,
+            ur.lhc_rebate0,
+            ur.dpc_rebate
+        from user u
+        LEFT JOIN user_rebate ur
+            on u.id = ur.id
+        WHERE is_del = 0 AND is_demo = #{isDemo}
+        AND u.user_name = #{userName}
+        AND u.site_id = #{siteId}
+    </select>
+    <select id="getUserProxyTypeByIdList" resultType="com.jq.user.customer.entity.UserRebateEntity">
+        select id,is_proxy FROM user_rebate WHERE id in
+        <foreach collection="list" index="index" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+</mapper>

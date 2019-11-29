@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.score.dao.UserScoreRecordDao">
+
+
+    <sql id="UserScoreParam">
+        CAST(u.id  AS CHAR) as userId,
+        u.user_name as userName,
+        r.is_proxy as isProxy,
+        u.`status`,
+        r.high_level_account as highLevelAccount,
+        r.sub_level_count as subLevelCount,
+        r.`level`,
+        k.rank_level as rankLevel,
+        k.rank_name as rankName,
+        u.score,
+        CAST(u.site_id  AS CHAR) as siteId,
+        ui.real_name as realName
+
+    </sql>
+
+    <sql id="ScoreRecordParam">
+        usr.user_name as userName,
+        r.is_proxy as isProxy,
+        r.high_level_account as highLevelAccount,
+        usr.score_val as scoreVal,
+        usr.final_score as finalScore,
+        usr.score_name as scoreName,
+        date_format(usr.create_time, '%Y-%m-%d %H:%i:%s') as createTime,
+        usr.remark,
+        CAST(usr.site_id  AS CHAR) as siteId
+    </sql>
+
+
+    <select id="findAll" resultType="map">
+        SELECT
+        CAST(u.id  AS CHAR) as userId,
+        u.user_name as userName,
+        r.is_proxy as isProxy,
+        u.`status`,
+        up.high_user_name as highLevelAccount,
+        ifnull(upn.sub_level_count,0) as subLevelCount,
+        upl.`level`,
+        k.rank_level as rankLevel,
+        k.rank_name as rankName,
+        u.score,
+        CAST(u.site_id  AS CHAR) as siteId,
+        ui.real_name as realName
+        from
+        user AS u LEFT JOIN user_rebate AS r on u.id = r.id
+        LEFT JOIN  user_rank AS k on u.user_rank_id = k.id
+        LEFT JOIN user_info AS ui on u.id=ui.id
+        LEFT JOIN (select user_id,high_user_name,high_user_id FROM user_proxy WHERE level = 1
+        GROUP BY user_id) up on up.user_id = u.id
+        JOIN (select user_id,level,high_user_name,high_user_id FROM user_proxy
+        WHERE high_user_name='default'
+        <if test="map.level != null">
+            AND	`level` = #{map.level}
+        </if>
+        <if test="map.siteId != null">
+            AND	site_id = #{map.siteId}
+        </if>
+        ) upl on upl.user_id = u.id
+        LEFT JOIN (SELECT
+        high_user_id,
+        count(*) AS sub_level_count
+        FROM user_proxy
+        WHERE  `level` != 0
+        <if test="map.siteId != null">
+            AND	site_id = #{map.siteId}
+        </if>
+        GROUP BY high_user_id ) upn
+        on u.id = upn.high_user_id
+        WHERE u.is_del = 0 AND u.is_demo= 0
+        <if test="map.userName != null and map.userName!='' ">
+            AND u.user_name = #{map.userName}
+        </if>
+        <if test="map.isProxy != null">
+            AND	r.is_proxy = #{map.isProxy}
+        </if>
+        <if test="map.userId != null">
+            AND	up.high_user_id = #{map.userId}
+        </if>
+        <if test="map.highLevelAccount != null and map.highLevelAccount!='' ">
+            AND up.high_user_name = #{map.highLevelAccount}
+        </if>
+        <if test="map.siteId != null">
+            AND	u.site_id = #{map.siteId}
+        </if>
+        <if test="map.status != null and map.status != '' ">
+            AND u.`status` = #{map.status}
+        </if>
+        <if test="map.rankLevel != null">
+            AND k.rank_level = #{map.rankLevel}
+        </if>
+        <if test="map.scoreStart != null and map.scoreStart!='' ">
+            AND u.score <![CDATA[  >=  ]]> #{map.scoreStart}
+        </if>
+        <if test="map.scoreEnd != null and map.scoreEnd !='' ">
+            AND u.score <![CDATA[  <=  ]]> #{map.scoreEnd}
+        </if>
+    </select>
+
+    <select id="findAllRecord" resultType="map">
+        SELECT
+        usr.user_name as userName,
+        r.is_proxy as isProxy,
+        up.high_user_name as highLevelAccount,
+        usr.score_val as scoreVal,
+        usr.final_score as finalScore,
+        usr.score_name as scoreName,
+        date_format(usr.create_time, '%Y-%m-%d %H:%i:%s') as createTime,
+        usr.remark,
+        CAST(usr.site_id  AS CHAR) as siteId
+        from
+        user_score_record AS usr LEFT JOIN user_rebate AS r on usr.user_id = r.id
+        LEFT JOIN (select user_id,high_user_name,high_user_id FROM user_proxy WHERE level = 1
+        <if test="map.siteId != null">
+            AND	site_id = #{map.siteId}
+        </if>
+        GROUP BY user_id) up on up.user_id = usr.user_id
+        LEFT JOIN user as u on u.id=usr.user_id
+        WHERE usr.is_del = 0 and u.is_demo=0
+        <if test="map.userName != null and map.userName!='' ">
+            AND usr.user_name = #{map.userName}
+        </if>
+        <if test="map.siteId != null">
+            AND	usr.site_id = #{map.siteId}
+        </if>
+        <if test="map.scoreVal != null">
+            AND usr.score_val = #{map.scoreVal}
+        </if>
+        <if test="map.finalScore != null">
+            AND usr.final_score = #{map.finalScore}
+        </if>
+        <if test="map.scoreCode != null and map.scoreCode!='' ">
+            AND usr.score_code = #{map.scoreCode}
+        </if>
+        <if test="map.timeStr != null and map.timeStr!='' ">
+            AND  date_format(usr.create_time, '%Y%m%d') = #{map.timeStr}
+        </if>
+    </select>
+
+</mapper>

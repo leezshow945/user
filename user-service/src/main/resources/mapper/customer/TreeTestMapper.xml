@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.customer.dao.TreeTestDao">
+    <delete id="deleteAllTree">
+        DELETE a FROM treetest AS a
+            JOIN treetest AS d
+                ON a.user_id = d.user_id
+            LEFT JOIN treetest AS x
+                ON x.boss_id = d.boss_id AND x.user_id = a.boss_id
+        WHERE
+            d.boss_id = #{userId} AND x.boss_id IS NULL;
+    </delete>
+
+
+    <insert id="insertAllTree" >
+        INSERT INTO treetest (boss_id, user_id, `level`)
+            SELECT
+                supertree.boss_id,
+                subtree.user_id,
+                supertree.level + subtree.level + 1
+            FROM treetest AS supertree
+                JOIN treetest AS subtree
+            WHERE subtree.boss_id = #{userId} AND supertree.user_id = #{newBossId};
+    </insert>
+</mapper>

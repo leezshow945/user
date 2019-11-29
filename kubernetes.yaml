@@ -1,0 +1,33 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: user
+  namespace: $NS
+  labels:
+    name: user
+spec:
+  template:
+    metadata:
+      labels:
+        name: user
+    spec:
+      containers:
+        - name: user
+          imagePullPolicy: IfNotPresent
+          image: $IMAGE
+          ports:
+            - name: web
+              containerPort: 8080
+            - name: rpc
+              containerPort: 30001
+          env:
+            - name: MOTAN_IP_REGISTRY
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: JAVA_OPTS
+              value: -Duser.timezone=Asia/Shanghai
+            - name: SPRING_PROFILES_ACTIVE
+              value: $NS
+      nodeSelector:
+        node: "true"

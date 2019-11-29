@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.rebate.dao.RebateResultDao">
+
+    <select id="getResultByTime" resultType="com.jq.user.rebate.dto.RebateResultDTO">
+        select result.event_name AS eventName,
+        result.begin_time AS beginTime,result.end_time AS endTime,info.user_name AS userName
+        from rebate_result result LEFT JOIN rebate_result_info info on result.id=info.result_id
+        where result.is_del=0 AND info.is_del=0 AND info.status=0 AND result.status=0
+        <if test="siteId!=null and siteId !=''">
+            AND result.site_id = #{siteId}
+        </if>
+        <if test="beginTime!=null and beginTime !=''">
+            AND result.begin_time = #{beginTime}
+        </if>
+        <if test="endTime!=null and endTime !=''">
+            AND result.end_time = #{endTime}
+        </if>
+        <if test="reqIds!=null and reqIds.size() > 0">
+            AND info.user_id in (
+            <foreach collection="reqIds" item="userId" separator=",">
+                #{userId}
+            </foreach>
+            )
+        </if>
+        order by result.do_time desc limit 1
+    </select>
+
+    <select id="queryList" resultType="com.jq.user.rebate.dto.RebateResultDTO">
+        select result.event_name AS eventName,rule.name AS ruleName,
+        result.begin_time AS beginTime,result.end_time AS endTime,
+        result.do_time AS doTime,result.final_rebate_num AS finalRebateNum,
+        result.rebate_num AS rebateNum,result.all_rebates AS allRebates,
+        result.status,result.id,result.group_name AS groupName,result.all_bets as allBets
+        from rebate_result result LEFT JOIN rebate_rule rule on result.rule_id=rule.id
+        where result.is_del=0 AND rule.is_del=0
+        <if test="dto.siteId!=null and dto.siteId !='' ">
+            AND result.site_id = #{dto.siteId}
+        </if>
+        <if test="dto.status!=null">
+            AND result.status= #{dto.status}
+        </if>
+        <if test="dto.beginTime!=null and dto.beginTime !=''">
+            AND DATE_FORMAT(result.do_time, '%Y-%m-%d') <![CDATA[  >=  ]]> #{dto.beginTime}
+        </if>
+        <if test="dto.endTime!=null and dto.endTime !=''">
+            AND DATE_FORMAT(result.do_time, '%Y-%m-%d') <![CDATA[  <=  ]]> #{dto.endTime}
+        </if>
+    </select>
+
+
+    <select id="sumRebateResultsByIds" resultType="com.jq.user.rebate.dto.RebateResultInfoDTO">
+        SELECT sum(info.gpc_rebate) as gpcRebate,sum(info.dpc_rebate) as dpcRebate,
+        sum(info.flc_rebate) as flcRebate,sum(info.tycp_rebate) as tycpRebate,sum(info.qt_rebate) as qtRebate,
+        sum(info.ty_rebate) as tyRebate,sum(info.lhc0_rebate) as lhc0Rebate,sum(info.lhc1_rebate) as lhc1Rebate,
+        sum(info.lhc2_rebate) as lhc2Rebate,sum(info.lhc3_rebate) as lhc3Rebate
+        FROM rebate_result result LEFT JOIN rebate_result_info info on result.id=info.result_id
+        where result.is_del=0 and info.is_del=0 and info.`status` =0
+        <if test="siteCode!=null and siteCode !='' ">
+            AND result.site_code = #{siteCode}
+        </if>
+        <if test="beginTime!=null and beginTime !=''">
+            AND unix_timestamp(result.begin_time) <![CDATA[  >=  ]]> unix_timestamp(#{beginTime})
+        </if>
+        <if test="endTime!=null and endTime !=''">
+            AND unix_timestamp(result.end_time) <![CDATA[  <=  ]]> unix_timestamp(#{endTime})
+        </if>
+        <if test="reqIds!=null and reqIds.size() > 0">
+            AND info.user_id in (
+            <foreach collection="reqIds" item="userId" separator=",">
+                #{userId}
+            </foreach>
+            )
+        </if>
+    </select>
+
+
+    <select id="getUserAllRebateMap" resultType="map">
+        SELECT info.user_id as userId,(sum(info.gpc_rebate)+sum(info.dpc_rebate)+sum(info.flc_rebate)
+        +sum(info.tycp_rebate)+sum(info.qt_rebate)+sum(info.ty_rebate)+sum(info.lhc0_rebate)
+        +sum(info.lhc1_rebate)+sum(info.lhc2_rebate)+sum(info.lhc3_rebate)) as allRebate
+        FROM rebate_result result LEFT JOIN rebate_result_info info on result.id=info.result_id
+        where result.is_del=0 and info.is_del=0 and info.`status` =0
+        <if test="siteCode!=null and siteCode !='' ">
+            AND result.site_code = #{siteCode}
+        </if>
+        <if test="beginTime!=null and beginTime !=''">
+            AND unix_timestamp(result.begin_time) <![CDATA[  >=  ]]> unix_timestamp(#{beginTime})
+        </if>
+        <if test="endTime!=null and endTime !=''">
+            AND unix_timestamp(result.end_time) <![CDATA[  <=  ]]> unix_timestamp(#{endTime})
+        </if>
+        <if test="reqIds!=null and reqIds.size() > 0">
+            AND info.user_id in (
+            <foreach collection="reqIds" item="userId" separator=",">
+                #{userId}
+            </foreach>
+            )
+        </if>
+        GROUP BY info.user_id
+</select>
+
+
+
+
+</mapper>

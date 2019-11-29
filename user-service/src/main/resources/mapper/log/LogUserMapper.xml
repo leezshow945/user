@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.log.dao.LogUserDao">
+
+    <!-- 通用查询映射结果 -->
+    <!--<resultMap id="BaseResultMap" type="com.jq.user.log.entity.LogUserEntity">
+        <id column="id" property="id" jdbcType="CHAR"/>
+        <result column="plat" property="plat" jdbcType="TINYINT"/>
+        <result column="login_account" property="loginAccount" jdbcType="VARCHAR"/>
+        <result column="content" property="content" jdbcType="VARCHAR"/>
+        <result column="login_id" property="loginId" jdbcType="CHAR"/>
+        <result column="login_ip" property="loginIp" jdbcType="CHAR"/>
+        <result column="login_time" property="loginTime" jdbcType="TIMESTAMP"/>
+        <result column="login_area" property="loginArea" jdbcType="CHAR"/>
+        <result column="is_diff_area_login" property="isDiffAreaLogin" jdbcType="TINYINT"/>
+        <result column="type" property="type" jdbcType="TINYINT"/>
+        <result column="account_type" property="accountType" jdbcType="TINYINT"/>
+        <result column="site_id" property="siteId" jdbcType="CHAR"/>
+        <result column="is_del" property="isDel" jdbcType="TINYINT"/>
+        <result column="flag_type" property="flagType" jdbcType="TINYINT"/>
+        <result column="login_url" property="loginUrl" jdbcType="VARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>-->
+
+    <!-- 通用查询结果列 -->
+    <!--<sql id="Base_Column_List">
+        `id`, `plat`, `login_account`, `content`, `login_id`, `login_ip`, `login_time`, `login_area`, `is_diff_area_login`,
+        `type`, `account_type`, `site_id`, `is_del`, `flag_type`, `login_url`, `create_time`, `update_time`,
+    </sql>-->
+
+    <insert id="insertList">
+        insert into log_user (`id`, `plat`, user_name, `content`, user_id, `login_ip`, `login_time`, `login_area`, `is_diff_area_login`,
+        `type`, `account_type`, `site_id`, `is_del`, `flag_type`, `login_url`, `create_time`, `update_time`)
+        VALUES
+        <foreach collection="list" index="index" item="logUser" separator=",">
+            (#{logUser.id},#{logUser.plat},#{logUser.loginAccount},#{logUser.content},#{logUser.loginId},#{logUser.loginIp},#{logUser.loginTime},
+            #{logUser.loginArea},#{logUser.isDiffAreaLogin},#{logUser.type},#{logUser.accountType},#{logUser.siteId},#{logUser.isDel},
+            #{logUser.flagType},#{logUser.loginUrl},#{logUser.createTime},#{logUser.updateTime})
+    </foreach>
+    </insert>
+
+    <update id="deleteBatch">
+        UPDATE log_user set is_del=1,update_time=now() WHERE id in(
+                <foreach collection="ids" index="index" item="id" separator=",">
+                    #{id}
+                </foreach>
+        )
+    </update>
+
+    <select id="getHourlyOnLines" resultType="int">
+        select count(DISTINCT user_id) from log_user
+        WHERE site_id =#{siteId}
+        AND login_time >= #{startTime}
+        AND login_time &lt; #{endTime}
+        AND type = 'LOGIN_SUCCESS'
+        AND account_type = 'USER'
+        AND flag_type = 'FLAG_TYPE_LOGIN'
+    </select>
+
+    <select id="getLoginCountByDay" parameterType="long" resultType="int">
+        SELECT count(*) day FROM (
+             SELECT date(create_time) FROM log_user WHERE user_id = #{id}
+                    AND type = 'LOGIN_SUCCESS'
+                    AND is_del = 0
+             GROUP BY date(create_time)
+        ) t;
+    </select>
+
+    <select id="getUserDiscArea" resultType="map">
+        SELECT
+            substr(login_area,1,2) AS     area,
+            count(substr(login_area,1,2)) num
+        FROM (
+            SELECT user_id, login_area
+            FROM (
+              SELECT
+                user_id, login_area
+              FROM log_user
+              WHERE
+                type = 'LOGIN_SUCCESS'
+                AND account_type = 'USER'
+                AND site_id = #{siteId}
+            <if test=" startTime !=null and startTime != ''">
+                AND login_time >= #{startTime}
+            </if>
+            <if test=" endTime !=null and endTime != ''">
+                and login_time &lt;= #{endTime}
+            </if>
+                ORDER BY login_time DESC LIMIT 1000000000) AS a
+            GROUP BY a.user_id
+        ) t
+        GROUP BY substr(login_area,1,2)
+        ORDER BY num DESC
+    </select>
+
+    <select id="getEffectiveUserDiscArea" resultType="map">
+        SELECT
+           substr(t.login_area, 1, 2) AS     area,
+           count(substr(t.login_area, 1, 2)) num
+        FROM (
+           SELECT user_id,login_area
+           FROM (
+             SELECT
+                log.user_id,login_area
+             FROM log_user log
+                LEFT JOIN valid_user_statistics vus
+                on log.user_id = vus.user_id
+                WHERE  type = 'LOGIN_SUCCESS'
+                AND account_type = 'USER'
+                AND (vus.is_valid IS null OR vus.is_valid = 1)
+                AND log.site_id = #{siteId}
+                <if test=" startTime !=null and startTime != ''">
+                    AND login_time >= #{startTime}
+                </if>
+                <if test=" endTime !=null and endTime != ''">
+                    and login_time &lt;= #{endTime}
+                </if>
+                 ORDER BY login_time desc LIMIT 1000000000) as t
+            GROUP BY t.user_id
+            ) t
+        GROUP BY substr(login_area, 1, 2)
+        ORDER BY num DESC
+    </select>
+
+    <select id="getRechargeUserDiscArea" resultType="map">
+        SELECT
+            substr(t.login_area, 1, 2) AS     area,
+            count(substr(t.login_area, 1, 2)) num
+        FROM (
+            SELECT user_id,login_area
+            FROM (
+                SELECT
+                    user_id,login_area
+                FROM log_user
+                WHERE user_id IN
+                <foreach collection="userIdList" item="userId" index="index" open="(" close=")" separator="," >
+                    #{userId}
+                </foreach>
+                AND type = 'LOGIN_SUCCESS'
+                AND account_type = 'USER'
+                AND site_id = #{siteId}
+                ORDER BY login_time desc LIMIT 1000000000) as t
+            GROUP BY t.user_id
+        ) t
+        GROUP BY substr(login_area, 1, 2)
+        ORDER BY num DESC
+    </select>
+
+    <select id="getPageView" resultType="int">
+        SELECT count(*) as num from (
+            SELECT
+                count(*)
+            FROM log_user
+            WHERE(create_time >= #{startTime}
+                  AND create_time &lt;= #{endTime}
+                  AND type = 'LOGIN_SUCCESS'
+                  AND account_type = 'USER'
+                  AND site_id = #{siteId})
+            GROUP BY user_id, DATE(create_time)
+        ) t
+    </select>
+</mapper>

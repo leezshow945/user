@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.oldbonus.dao.UserBonusSonDao">
+
+    <sql id="resultSql">
+          ubs.id ,
+          ubs.main_id  ,
+          ubs.amount  ,
+          ubs.rebate  ,
+          ubs.valid_member ,
+          ubs.bonus_mode   ,
+          ubs.bonus_amount ,
+          ubs.limit_amount ,
+          ubs.actual_win_lose ,
+          ubs.bonus_per    ,
+          ubs.create_time ,
+          ubs.update_time ,
+          ubs.create_by  ,
+          ubs.update_by  ,
+          ubs.is_del   ,
+          ubs.remark
+    </sql>
+
+    <select id="queryUserBonusSon" resultType="com.jq.user.oldbonus.entity.UserBonusSonEntity">
+        select <include refid="resultSql"/> from user_bonus_son ubs where  is_del=0 AND main_id=#{mainId}
+        <if test="rebate !=null and rebate!=''">
+            AND ubs.rebate <![CDATA[>=]]> #{rebate}
+        </if>
+        <if test="amount !=null and amount!=''">
+            AND    ubs.amount <![CDATA[>=]]> #{amount}
+        </if>
+
+        <choose>
+            <when test="amount !=null and amount!=''">
+                <if test="sort !=null and sort!='' and sort!='asc'">
+                    ORDER BY amount DESC
+                </if>
+            </when>
+            <otherwise>
+                <if test="sort !=null and sort!='' and sort!='asc'">
+                    ORDER BY rebate DESC
+                </if>
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="querySonByMainId" resultType="com.jq.user.oldbonus.entity.UserBonusSonEntity" >
+        select <include refid="resultSql"/>  from user_bonus_son ubs where 1=1
+        <if test="isDel != null">
+            AND is_del = #{isDel}
+        </if>
+        <if test="mainId !=null">
+            AND ubs.main_id= #{mainId}
+        </if>
+    </select>
+
+    <select id="queryBonusSonByMainId" resultType="map" parameterType="map">
+        SELECT
+            a.id AS mainId,
+            b.id AS id
+        FROM
+            user_bonus_main AS a
+        LEFT JOIN user_bonus_son AS b ON a.id = b.main_id
+        WHERE
+            1 = 1
+        AND b.main_id = #{mainId}
+        AND a.is_del = 0
+        AND b.is_del = 0
+        <if test="id !=null and id>=0">
+            AND    b.id!=#{id}
+        </if>
+        <choose>
+            <when test="settingType==0">
+                <if test="amountOrRebate !=null and amountOrRebate!=''">
+                    AND b.rebate= #{amountOrRebate}
+                </if>
+                <if test="amount !=null and amount!=''">
+                    AND    b.amount = #{amount}
+                </if>
+            </when>
+            <when test="settingType==1">
+                <if test="amountOrRebate !=null and amountOrRebate!=''">
+                    AND b.amount= #{amountOrRebate}
+                </if>
+            </when>
+        </choose>
+
+        <if test="validMember !=null and validMember!=''">
+            AND    b.valid_member = #{validMember}
+        </if>
+
+        <if test="playType !=null and playType!=''">
+            AND    a.play_type = #{playType}
+        </if>
+        <if test="gameCategoryId !=null and gameCategoryId!=''">
+            AND    a.game_category_id = #{gameCategoryId}
+        </if>
+        <if test="rebateLevel !=null and rebateLevel!=''">
+            AND    a.rebate_level = #{rebateLevel}
+        </if>
+
+        <choose>
+            <when test="bonusMode==0">
+                <if test="limitAmount !=null and limitAmount!=''">
+                    AND    b.limit_amount = #{limitAmount}
+                </if>
+                <if test="bonusPer !=null and bonusPer!=''">
+                    AND    b.bonus_per = #{bonusPer}
+                </if>
+            </when>
+            <when test="bonusMode==1">
+                <if test="bonusAmount !=null and bonusAmount!=''">
+                    AND    b.bonus_amount = #{bonusAmount}
+                </if>
+            </when>
+        </choose>
+    </select>
+
+</mapper>

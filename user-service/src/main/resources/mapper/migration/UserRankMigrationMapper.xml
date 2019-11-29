@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.score.dao.UserRankMigrationDao">
+
+    <select id="getOldIds" resultType="String">
+        SELECT id
+        FROM lot_user
+    </select>
+
+    <insert id="insertRelationTable" parameterType="java.util.List">
+        INSERT INTO network_relation (new_id,old_id) VALUES
+        <foreach collection="idList" item="id" separator=",">
+            (#{id.new},#{id.old})
+        </foreach>
+    </insert>
+
+
+    <select id="getOldUsers" resultType="Map">
+        SELECT
+            id         AS old,
+            login_name AS userName
+        FROM lot_user
+    </select>
+
+    <insert id="insertUserRelationTable" parameterType="java.util.List">
+        INSERT INTO user_relation (new_id,old_id,user_name) VALUES
+        <foreach collection="userList" item="user" separator=",">
+            (#{user.new},#{user.old},#{user.userName})
+        </foreach>
+    </insert>
+
+
+    <insert id="insertUserRankTable">
+        INSERT INTO user_rank
+        (id, site_id, site_code, rank_name, rank_level, rank_img, max_score, remark, is_del, create_time, create_by, update_time, update_by)
+            SELECT
+                rankRelation.new_id,
+                siteRelation.new_id,
+                siteRelation.site_code,
+                rank.rank_name,
+                rank.rank_code,
+                rank.rank_img,
+                rank.max_score,
+                rank.remark,
+                CASE WHEN rank.is_del = 'F'
+                    THEN 0
+                ELSE 1 END,
+                rank.create_time,
+                sysUserRelation.user_name,
+                rank.update_time,
+                sysUserRelation2.user_name
+            FROM lot_user_rank rank
+                LEFT JOIN sys_user_relation sysUserRelation ON rank.create_by = sysUserRelation.old_id
+                LEFT JOIN sys_user_relation sysUserRelation2 ON rank.update_by = sysUserRelation2.old_id
+                LEFT JOIN user_rank_relation rankRelation ON rank.id = rankRelation.old_id
+                LEFT JOIN site_relation siteRelation ON siteRelation.old_id = rank.site_id
+            GROUP BY rank.id
+            ORDER BY rank.create_time;
+    </insert>
+
+    <insert id="insertUserRankScoreTable">
+        INSERT INTO user_rank_score
+        (id, rank_id, score_name, score_code, score_val, is_enable, remark, is_del, create_time, create_by, update_time, update_by)
+            SELECT
+                socreRelation.new_id,
+                rankRelation.new_id,
+                score.way_name,
+                score.way_code,
+                score.way_val,
+                CASE WHEN score.is_enable = 'F'
+                    THEN 0
+                ELSE 1 END,
+                score.remark,
+                CASE WHEN score.is_del = 'F'
+                    THEN 0
+                ELSE 1 END,
+                score.create_time,
+                sysUserRelation.user_name,
+                score.update_time,
+                sysUserRelation2.user_name
+            FROM lot_user_score_way score
+                LEFT JOIN user_rank_score_relation socreRelation ON score.id = socreRelation.old_id
+                LEFT JOIN sys_user_relation sysUserRelation ON score.create_by = sysUserRelation.old_id
+                LEFT JOIN sys_user_relation sysUserRelation2 ON score.update_by = sysUserRelation.old_id
+                LEFT JOIN user_rank_relation rankRelation ON score.rank_id = rankRelation.old_id
+            GROUP BY score.id
+            ORDER BY score.create_time
+    </insert>
+
+
+</mapper>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.customer.dao.UserInfoDao">
+    <update id="updateSysUserInfo" parameterType="com.jq.user.customer.entity.UserInfoEntity">
+        UPDATE user_info
+        <trim prefix="set" suffixOverrides="," suffix="WHERE id = #{id}">
+            <if test="realName != null and realName != ''">
+                real_name = #{realName},
+            </if>
+            <if test="sex != null">
+                sex = #{sex},
+            </if>
+            <if test="email != null and email!= ''">
+                email =#{email},
+            </if>
+            <if test="mobile != null and mobile != ''">
+                mobile =#{mobile},
+            </if>
+            <if test="birthday != null">
+                birthday = #{birthday},
+            </if>
+            <if test="updateTime != null">
+                update_time =#{updateTime},
+            </if>
+        </trim>
+    </update>
+
+    <select id="queryUserInfoByUserNames" resultType="com.jq.user.customer.dto.UserInfoDTO">
+        SELECT t0.user_name userName,t1.* FROM `user` t0 LEFT JOIN user_info t1 ON t0.id = t1.id
+        where t0.is_del = 0
+        <if test="siteCode != null">
+            and t0.site_code = #{siteCode}
+        </if>
+        <if test="userNameList != null">
+            and t0.user_name IN
+            (
+            <foreach collection="userNameList" item="thisName" separator=",">
+                #{thisName}
+            </foreach>
+            )
+        </if>
+    </select>
+
+    <select id="getUserInfoByIdList" resultType="com.jq.user.customer.dto.UserInfoDTO">
+        select u.id as userId ,rank_level,user_name,nick_name,photo
+        FROM user u
+        LEFT JOIN user_rank ur on ur.id = u.user_rank_id
+        LEFT JOIN user_info ui on ui.id = u.id
+        WHERE u.site_id = #{siteId} AND u.id in
+        <foreach collection="list" item="id" index="index" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+</mapper>

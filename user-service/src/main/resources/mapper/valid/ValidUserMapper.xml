@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.valid.dao.ValidUserStatisticsDao">
+
+    <insert id="insertBatch">
+        INSERT INTO valid_user_statistics (user_id,site_id, site_code,recharge_amount, withdraw_amount,
+        valid_bet_amount,valid_order_num,register_days, login_days, login_count_num, has_real_name,
+        is_repeat, is_valid,create_time, update_time)
+        VALUES
+        <foreach collection="list" separator="," index="index" item="entity">
+            (#{entity.userId},#{entity.siteId},#{entity.siteCode},#{entity.rechargeAmount},#{entity.withdrawAmount},
+            #{entity.validBetAmount},#{entity.validOrderNum},#{entity.registerDays},#{entity.loginDays},
+            #{entity.loginCountNum},#{entity.hasRealName},#{entity.isRepeat},#{entity.isValid},
+            #{entity.createTime},#{entity.updateTime})
+        </foreach>
+    </insert>
+
+    <update id="updateBatch" parameterType="java.util.List">
+        <foreach collection="list" separator=";" index="index" open="" close="" item="entity">
+            UPDATE valid_user_statistics
+            set
+                recharge_amount = #{entity.rechargeAmount}, withdraw_amount = #{entity.withdrawAmount},
+                valid_bet_amount = #{entity.validBetAmount}, valid_order_num = #{entity.validOrderNum},
+                register_days = #{entity.registerDays}, login_days = #{entity.loginDays},
+                login_count_num = #{entity.loginCountNum},  has_real_name = #{entity.hasRealName},
+                is_repeat = #{entity.isRepeat},   is_valid = #{entity.isValid},   update_time = #{entity.updateTime}
+            where user_id = #{entity.userId}
+        </foreach>
+    </update>
+
+    <select id="getValidUserInfo" resultType="map">
+        SELECT
+            u.id,
+            datediff(now(), create_time)         AS registerDays,
+            login_count                          AS loginCount,
+            ifnull(log.login_days, 0)            AS loginDays,
+            if(real_name.realName IS NULL, 0, 1) AS hasRealName,
+            ifnull(real_name.isRepeat, 0)        AS isRepeat
+        FROM (SELECT
+                  id,
+                  create_time,
+                  login_count
+              FROM user
+              WHERE (site_id = #{siteId} AND is_demo = 0 AND is_del = 0)) u
+            LEFT JOIN (SELECT
+                           user_id,
+                           count(*) AS login_days
+                       FROM (
+                                SELECT
+                                    user_id,
+                                    DATE(create_time)
+                                FROM log_user
+                                WHERE
+                                    type = 'LOGIN_SUCCESS'
+                                    AND account_type = 'USER'
+                                    AND site_id = #{siteId}
+                                GROUP BY user_id, DATE(create_time)
+                            ) t
+                       GROUP BY user_id) log ON u.id = log.user_id
+
+            LEFT JOIN (SELECT
+                           u.id,
+                           from_base64(real_name)   AS realName,
+                           ifnull(rep.is_repeat, 0) AS isRepeat
+                       FROM user u
+                           LEFT JOIN user_info ui
+                               ON u.id = ui.id
+                           LEFT JOIN (SELECT
+                                          min(u.id) AS id,
+                                          1         AS is_repeat
+                                      FROM user u
+                                          LEFT JOIN user_info ui
+                                              ON u.id = ui.id
+                                      WHERE u.is_del = 0
+                                            AND u.is_demo = 0
+                                            AND ui.real_name IS NOT NULL
+                                            AND u.site_id = #{siteId}
+                                      GROUP BY real_name) rep ON u.id = rep.id
+                       WHERE u.is_del = 0
+                             AND u.is_demo = 0
+                             AND ui.real_name IS NOT NULL AND ui.real_name != ''
+                             AND u.site_id = #{siteId}) real_name ON real_name.id = u.id
+
+    </select>
+
+    <select id="getValidUserIdList" resultType="long">
+        select user_id FROM valid_user_statistics WHERE is_valid = 1 AND user_id in
+        <foreach collection="list" separator="," index="index" item="id" open="(" close=")">
+            #{id}
+        </foreach>
+    </select>
+</mapper>

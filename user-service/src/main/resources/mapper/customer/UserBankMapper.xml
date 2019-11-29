@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.customer.dao.BankCardDao">
+    <select id="selectSiteIdAndCardNo" resultType="com.jq.user.customer.entity.BankCardEntity">
+        select
+            ub.id,
+            user_id,
+            province_id,
+            city_id,
+            card_no,
+            bank_id,
+            bank_name,
+            net_addr_id,
+            is_enable,
+            is_default,
+            ub.create_time,
+            ub.create_by,
+            ub.update_by,
+            ub.update_time,
+            ub.remark,
+            ub.is_del,
+            card_user_name,
+            province,
+            city,
+            net_addr
+        FROM user_bank ub
+            LEFT JOIN user u
+                ON ub.user_id = u.id
+        where ub.is_del = 0 and u.site_id = #{siteId} and ub.card_no = #{cardNo}
+    </select>
+
+    <select id="countBySiteIdAndCardNo" resultType="int">
+        select count(*)
+        FROM user_bank ub
+            LEFT JOIN user u
+                ON ub.user_id = u.id
+        where ub.is_del = 0 and u.site_id = #{siteId} and ub.card_no = #{cardNo}
+    </select>
+</mapper>

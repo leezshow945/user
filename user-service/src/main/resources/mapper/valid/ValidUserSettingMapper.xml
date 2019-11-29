@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.valid.dao.ValidUserSettingDao">
+    <update id="updateAllColumn">
+        UPDATE valid_user_setting
+        SET
+            recharge_amount = #{rechargeAmount},
+            withdraw_amount = #{withdrawAmount},
+            valid_bet_amount = #{validBetAmount},
+            login_count_num = #{loginCountNum},
+            valid_order_num = #{validOrderNum},
+            register_days = #{registerDays},
+            login_days = #{loginDays},
+            has_real_name = #{hasRealName},
+            is_repeat = #{isRepeat},
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        WHERE SITE_ID = #{siteId}
+    </update>
+
+</mapper>

@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.oldbonus.dao.UserBonusMainDao">
+    
+    <resultMap id="userBonusMainResult" type="com.jq.user.oldbonus.entity.UserBonusMainEntity">
+        <!--<id column="id" property="id"/>-->
+        <result column="game_id" property="gameId"/>
+        <result column="game_category_id" property="gameCategoryId"/>
+        <result column="play_type" property="playType"/>
+        <result column="to_user_id" property="toUserId"/>
+        <result column="user_id" property="userId"/>
+        <result column="rebate_level" property="rebateLevel"/>
+        <result column="bonus_rule" property="bonusRule"/>
+        <result column="bonus_strategy" property="bonusStrategy"/>
+        <result column="bonus_cycle" property="bonusCycle"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_del" property="isDel"/>
+        <result column="distribute" property="distribute"/>
+        <result column="sign_status" property="signStatus"/>
+        <result column="setting_type" property="settingType"/>
+        <result column="remark" property="remark"/>
+        <result column="site_id" property="siteId"/>
+        <result column="site_code" property="siteCode"/>
+        <!--<collection property="userBonusSonEntity" column="main_id" ofType="com.jq.user.oldbonus.entity.UserBonusSonEntity">-->
+            <!--<id column="id" property="id"/>-->
+            <!--<result column="main_id" property="mainId"/>-->
+            <!--<result column="amount" property="amount"/>-->
+            <!--<result column="rebate" property="rebate"/>-->
+            <!--<result column="valid_member" property="validMember"/>-->
+            <!--<result column="bonus_mode" property="bonusMode"/>-->
+            <!--<result column="bonus_amount" property="bonusAmount"/>-->
+            <!--<result column="limit_amount" property="limitAmount"/>-->
+            <!--<result column="bonus_per" property="bonusPer"/>-->
+            <!--<result column="create_time" property="createTime"/>-->
+            <!--<result column="update_time" property="updateTime"/>-->
+            <!--<result column="create_by" property="createBy"/>-->
+            <!--<result column="update_by" property="updateBy"/>-->
+            <!--<result column="is_del" property="isDel"/>-->
+            <!--<result column="remark" property="remark"/>-->
+        <!--</collection>-->
+    </resultMap>
+
+    <sql id="bonusMainResult">
+        ma.game_id,
+        ma.game_category_id ,
+        ma.play_type ,
+        ma.to_user_id ,
+        ma.user_id ,
+        ma.rebate_level ,
+        ma.bonus_rule ,
+        ma.bonus_strategy ,
+        ma.bonus_cycle ,
+        ma.create_by ,
+        ma.create_time ,
+        ma.update_by ,
+        ma.update_time ,
+        ma.is_del ,
+        ma.distribute ,
+        ma.sign_status ,
+        ma.setting_type ,
+        ma.settle_time,
+        ma.remark ,
+        ma.site_id,
+        ma.site_code
+    </sql>
+
+    <sql id="bonusMainResultAll">
+        ma.id,
+        ma.game_id,
+        ma.game_category_id ,
+        ma.play_type ,
+        ma.to_user_id ,
+        ma.user_id ,
+        ma.rebate_level ,
+        ma.bonus_rule ,
+        ma.bonus_strategy ,
+        ma.bonus_cycle ,
+        ma.create_by ,
+        ma.create_time ,
+        ma.update_by ,
+        ma.update_time ,
+        ma.is_del ,
+        ma.distribute ,
+        ma.sign_status ,
+        ma.setting_type ,
+        ma.settle_time,
+        ma.remark ,
+        ma.site_id,
+        ma.site_code
+    </sql>
+
+    <select id="queryBonusSetByLevel" resultType="map" parameterType="map">
+    SELECT
+        <include refid="bonusMainResult"/> , b.*
+    FROM
+        user_bonus_main AS ma
+    LEFT JOIN user_bonus_son AS b ON ma.id = b.main_id
+    WHERE
+        ma.setting_type = #{settingType}
+    AND ma.is_del = 0
+    AND b.is_del = 0
+    <if test="rebateLevel !=null ">
+        AND    ma.rebate_level=#{rebateLevel}
+    </if>
+    <if test="siteId !=null ">
+        AND    ma.site_id=#{siteId}
+    </if>
+    <choose>
+        <when test="flag">
+            ORDER BY b.valid_member ASC,b.amount ASC,b.actual_win_lose ASC
+        </when>
+        <otherwise>
+            GROUP BY ma.game_category_id,ma.play_type ORDER BY b.valid_member ASC
+        </otherwise>
+
+    </choose>
+
+    </select>
+
+    <select id="queryContractBonusInfo" resultType="map" >
+        SELECT
+            ma.create_time,
+            ma.update_time,
+            ma.id,
+            ma.to_user_id,
+            ma.user_id,
+            ma.game_category_id,
+            ma.is_del,
+            ifnull(ma.sign_time,'') as sign_time,
+            IFNULL (ma.play_type,''),
+            ma.sign_status,
+            ust.user_name AS to_user_name,
+            us.user_name AS user_name
+        FROM
+            user_bonus_main AS ma
+        INNER JOIN user_bonus_son AS son ON ma.id = son.main_id
+        LEFT JOIN user AS ust ON ma.to_user_id = ust.id
+        LEFT JOIN user AS us ON ma.user_id = us.id
+        WHERE  ma.site_id=#{map.siteId}
+        AND  ma.setting_type=#{map.settingType}
+
+        <if test="map.isDel !=null">
+            AND ma.is_del = #{map.isDel} AND us.is_del = #{map.isDel}
+        </if>
+
+        <if test="map.gameCategoryId !=null and map.gameCategoryId!=''">
+            AND    ma.game_category_id=#{map.gameCategoryId}
+        </if>
+
+        <if test="map.playType !=null and map.playType!=''">
+            AND    ma.play_type=#{map.playType}
+        </if>
+
+        <if test="map.signStatus !=null">
+            AND    ma.sign_status=#{map.signStatus}
+        </if>
+
+        <if test="map.startTime !=null and map.startTime!='' and map.endTime !=null and map.endTime!=''">
+            AND ma.sign_time BETWEEN #{map.startTime} AND #{map.endTime}
+        </if>
+
+        <if test="map.toUserName !=null and map.toUserName!=''">
+            AND    ust.user_name=#{map.toUserName}
+        </if>
+
+        <if test="map.userName !=null and map.userName!=''">
+            AND    us.user_name=#{map.userName}
+        </if>
+
+        GROUP BY ma.id ORDER BY ma.create_time desc
+    </select>
+
+    <select id="queryContractBonus" resultType="map" >
+        SELECT
+        ma.create_time AS createTime,
+        ma.update_time AS updateTime,
+        ma.sign_status AS signStatus,
+        ma.to_user_id,
+        ma.id,
+        ma.user_id,
+        ma.is_del,
+        ma.game_category_id,
+        ma.sign_time,
+        ma.play_type,
+        ust.user_name AS toUserName,
+        us.user_name AS userName
+        FROM
+        user_bonus_main AS ma
+        LEFT JOIN user AS ust ON ma.to_user_id = ust.id
+        LEFT JOIN user AS us ON ma.user_id = us.id
+        WHERE ma.site_id=#{map.siteId}
+        AND  ma.setting_type=#{map.settingType}
+
+        <if test="map.isDel !=null">
+            AND ma.is_del = #{map.isDel} AND us.is_del = #{map.isDel}
+        </if>
+
+        <if test="map.gameCategoryId !=null and map.gameCategoryId!=''">
+            AND    ma.game_category_id=#{map.gameCategoryId}
+        </if>
+
+        <if test="map.playType !=null and map.playType!=''">
+            AND    ma.play_type=#{map.playType}
+        </if>
+
+        <if test="map.toUserName !=null and map.toUserName!=''">
+            AND    ust.user_name=#{map.toUserName}
+        </if>
+
+        <if test="map.userName !=null and map.userName!=''">
+            AND    us.user_name=#{map.userName}
+        </if>
+
+        GROUP BY ma.id ORDER BY ma.create_time desc
+    </select>
+
+    <select id="queryContractMainSonById" resultType="map">
+
+        SELECT
+        <include refid="bonusMainResult"/>, son.*
+        FROM
+            user_bonus_main AS ma
+        LEFT JOIN user_bonus_son AS son ON ma.id = son.main_id
+        WHERE ma.is_del=0 and son.is_del=0
+        AND ma.site_id=#{siteId}
+        AND ma.id=#{mainId}
+    </select>
+
+    <select id="queryContractRecord" resultType="com.jq.user.oldbonus.entity.UserBonusMainEntity">
+        select <include refid="bonusMainResultAll"/> from user_bonus_main ma where ma.is_del=0
+        <if test="siteId !=null ">
+            AND    ma.site_id=#{siteId}
+        </if>
+        <if test="userId !=null ">
+            AND    ma.user_id=#{userId}
+        </if>
+        <if test="settingType !=null ">
+            AND    ma.setting_type=#{settingType}
+        </if>
+        <if test="toUserId !=null ">
+            AND    ma.to_user_id=#{toUserId}
+        </if>
+        <if test="gameCategoryId !=null and gameCategoryId!=''">
+            AND    ma.game_category_id=#{gameCategoryId}
+        </if>
+        <if test="playType !=null and playType!=''">
+            AND    ma.play_type=#{playType}
+        </if>
+        <if test="signStatus !=null">
+            AND    ma.sign_status=#{signStatus}
+        </if>
+        <if test="bonusCycle !=null ">
+            AND    ma.bonus_cycle=#{bonusCycle}
+        </if>
+        <if test="bonusRule !=null ">
+            AND    ma.bonus_rule=#{bonusRule}
+        </if>
+        <if test="bonusStrategy !=null ">
+            AND    ma.bonus_strategy=#{bonusStrategy}
+        </if>
+        <if test="distribute !=null ">
+            AND    ma.distribute=#{distribute}
+        </if>
+        <if test="id !=null ">
+            AND    ma.id=#{id}
+        </if>
+        <if test="rebateLevel !=null ">
+            AND    ma.rebate_level=#{rebateLevel}
+        </if>
+        <if test="createBy !=null and createBy!=''">
+            AND    ma.create_by=#{createBy}
+        </if>
+        <if test="updateBy !=null and updateBy!=''">
+            AND    ma.update_by=#{updateBy}
+        </if>
+    </select>
+
+    <update id="updateAllColumnById">
+        UPDATE user_bonus_main SET
+        game_id = #{gameId},
+        game_category_id = #{gameCategoryId},
+        play_type= #{playType},
+        to_user_id= #{toUserId},
+        user_id= #{userId},
+        rebate_level= #{rebateLevel},
+        bonus_rule= #{bonusRule},
+        bonus_strategy= #{bonusStrategy},
+        bonus_cycle= #{bonusCycle},
+        create_by= #{createBy},
+        create_time= #{createTime},
+        update_by= #{updateBy},
+        update_time= #{updateTime},
+        is_del= #{isDel},
+        distribute= #{distribute},
+        sign_status= #{signStatus},
+        setting_type= #{settingType},
+        remark= #{remark},
+        site_code= #{siteCode},
+        site_id= #{siteId},
+        sign_time= #{signTime},
+        settle_time= #{settleTime}
+        WHERE id = #{id}
+    </update>
+</mapper>

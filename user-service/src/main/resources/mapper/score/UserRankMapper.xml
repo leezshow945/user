@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.score.dao.UserRankDao">
+    <select id="findById" resultType="com.jq.user.score.entity.UserRankEntity">
+        select * from user_rank WHERE id=#{id} and is_del=0
+    </select>
+
+    <select id="selectRankLevel" resultType="Long">
+        select DISTINCT rank_level from user_rank where is_del=0
+        <if test="siteId!=null and siteId !='' and siteId != 0">
+            AND site_id = #{siteId}
+        </if>
+        order by rank_level
+    </select>
+
+    <select id="findDefaultRank" resultType="Long">
+        select id from user_rank where is_del=0 AND site_id = #{siteId} AND rank_level=0
+    </select>
+
+    <select id="getRankAndRebateLevel" resultType="com.jq.user.score.dto.UserRankDTO">
+        SELECT
+        u.id as userId,
+        up.high_user_name as highLevelAccount,
+        up.high_user_id as highLevelId,
+        rank.id as id,
+        rank.rank_name as rankName,
+        u.user_name as userName,
+        u.site_id as siteId
+        FROM `user` u LEFT JOIN user_rebate rebate on u.id =rebate.id
+            LEFT JOIN user_rank rank on u.user_rank_id=rank.id
+        LEFT JOIN (select user_id,high_user_name,high_user_id FROM user_proxy WHERE `level` = 1 AND site_code = #{siteCode} GROUP BY user_id)  up
+        on u.id = up.user_id
+        where u.site_code=#{siteCode} and u.id in(
+        <foreach collection="idList" item="thisId" separator=",">
+            #{thisId.userId}
+        </foreach>
+           )
+    </select>
+
+</mapper>

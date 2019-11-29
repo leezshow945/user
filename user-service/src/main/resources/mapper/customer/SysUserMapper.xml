@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.customer.dao.SysUserDao">
+
+    <select id="selectByUserName" resultType="com.jq.user.customer.entity.SysUserEntity">
+        SELECT *
+        FROM sys_user
+        WHERE user_name = #{userName} AND site_id = #{siteId} AND is_del = 0;
+    </select>
+
+    <select id="findUserNameById" parameterType="long" resultType="string">
+        SELECT user_name
+        FROM sys_user
+        WHERE id = #{id} AND is_del = 0;
+    </select>
+
+    <select id="confirmExistUserName" resultType="string">
+        SELECT user_name
+        FROM sys_user
+        WHERE user_name = #{userName} AND is_del = 0;
+    </select>
+
+    <update id="updateSysUser" parameterType="com.jq.user.customer.entity.SysUserEntity">
+        UPDATE sys_user
+        <trim prefix="set" suffixOverrides="," suffix="WHERE id = #{id}">
+            <if test="createTime != null">
+                create_time = #{createTime},
+            </if>
+            <if test="createBy != null and createBy != ''">
+                create_by = #{createBy},
+            </if>
+            <if test="updateTime != null">
+                update_time = #{updateTime},
+            </if>
+            <if test="updateBy != null and updateBy != ''">
+                update_by = #{updateBy},
+            </if>
+            <if test="deptId != null">
+                dept_id = #{deptId},
+            </if>
+            <if test="userName != null and userName != ''">
+                user_name = #{userName},
+            </if>
+            <if test="remark != null and remark != ''">
+                remark = #{remark},
+            </if>
+        </trim>
+    </update>
+
+    <update id="deleteSysUserByUserId" parameterType="Long">
+        UPDATE sys_user
+        SET is_del = 1
+        WHERE id = #{userId} AND site_id = #{siteId}
+    </update>
+    <select id="getDefaultSysManId" parameterType="Long" resultType="Long">
+        select min(id) as id from sys_user WHERE  (site_id = #{siteId})
+    </select>
+</mapper>

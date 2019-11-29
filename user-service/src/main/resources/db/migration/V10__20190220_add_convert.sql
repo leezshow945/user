@@ -1,0 +1,1 @@
+alter table user add is_convert int(11) DEFAULT '0' COMMENT '额度转换 0-未开启 1-开启';

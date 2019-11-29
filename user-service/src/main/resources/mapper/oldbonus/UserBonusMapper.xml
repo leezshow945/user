@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.oldbonus.dao.UserBonusDao">
+
+    <sql id="resultSql">
+          ub.id ,
+          ub.game_id ,
+          ub.game_category_id ,
+          ub.play_type ,
+          ub.to_user_id ,
+          ub.user_id ,
+          ub.periods ,
+          ub.all_betting_amount ,
+          ub.all_betting_number ,
+          ub.rebate ,
+          ub.examine_state ,
+          ub.win_amount ,
+          ub.team_make_water ,
+          ub.win_lose ,
+          ub.activity ,
+          ub.actual_win_lose ,
+          ub.bonus bigint(16) ,
+          ub.auditor_id ,
+          ub.create_time ,
+          ub.create_by ,
+          ub.update_time ,
+          ub.update_by ,
+          ub.is_del ,
+          ub.data_type ,
+          ub.remark ,
+          ub.site_id ,
+          ub.site_code ,
+          ub.main_id
+    </sql>
+
+    <select id="queryUserBonusByUserIdApi" resultType="com.jq.user.bonus.dto.UserBonusDTO" parameterType="map">
+        select <include refid="resultSql"/> from user_bonus ub where 1=1 and is_del=0
+        <if test="dataType !=null ">
+            AND    ub.data_type=#{dataType}
+        </if>
+        <choose>
+            <when test="flag">
+                <if test="userId !=null userId>=0">
+                    AND    ub.user_id=#{userId}
+                </if>
+            </when>
+            <otherwise>
+                <if test="userId !=null and userId>=0 ">
+                    AND    ub.to_user_id=#{userId}
+                </if>
+            </otherwise>
+        </choose>
+        <if test="siteId !=null and siteId>=0">
+            AND    ub.site_id=#{siteId}
+        </if>
+    </select>
+    <!-- user_rebate t7 ON t7.id = t1.to_user_id-->
+    <select id="queryUserBonusDividByPage" resultType="com.jq.user.bonus.dto.UserBonusDTO">
+        SELECT
+            t1.id,
+            t1.periods,
+            <!--<if test="dataType!=null and  (dataType==0 or dataType==1)">-->
+                <!--IFNULL (t8.bonus, 0) as dailyWage,-->
+            <!--</if>-->
+            t1.remark,
+            t1.site_code AS siteCode,
+            t1.site_id AS siteId,
+            t1.play_type AS playType,
+            t1.user_id AS userId,
+            t1.data_type AS dataType,
+            t1.to_user_id AS toUserId,
+            t1.game_category_id AS categoryId,
+            t2.user_name AS createName,
+            IFNULL (t1.all_betting_amount, 0) AS allBettingAmount,
+            IFNULL (t1.all_betting_number, 0) AS allBettingNumber,
+            t5.user_name contractName,
+            IFNULL (t1.rebate, 0) AS rebate,
+            IFNULL (t1.win_amount, 0) AS winAmount,
+            IFNULL (t1.win_lose, 0) AS winLose,
+            IFNULL (t1.team_make_water, 0) AS teamMakeWater,
+            IFNULL (t1.bonus, 0) AS bonus,
+            t1.auditor_id AS auditorId,
+            t1.examine_state AS examineState,
+            CASE t1.auditor_id
+        WHEN 'SYS' THEN
+            '系统审核'
+        ELSE
+            t4.user_name
+        END apperName,
+         IFNULL (t1.actual_win_lose, 0) AS actualWinLose,
+         t6.bonus_strategy AS bonusStartegy,
+         t6.bonus_cycle AS bonusCycle,
+         IFNULL (t1.activity, 0) AS activity,
+         t7.level
+        FROM
+            user_bonus t1
+        LEFT JOIN  `user` t2 ON t1.user_id = t2.id
+        LEFT JOIN  sys_user t4 ON t1.auditor_id = t4.id
+        RIGHT JOIN  `user`  t5 ON t1.to_user_id = t5.id and t5.is_demo = 0
+        INNER JOIN  user_bonus_main t6 ON t1.main_id = t6.id
+        INNER JOIN (select user_id,`level` from user_proxy WHERE high_user_name = 'default'
+                    <if test="dto.level !=null ">
+                       AND `level`= #{dto.level}
+                    </if>
+                    <if test="dto.siteId !=null and dto.siteId>=0">
+                        AND site_id = #{dto.siteId}
+                    </if>
+                    ) t7 ON t7.user_id = t1.to_user_id
+        WHERE
+            t1.is_del = 0
+
+        <if test="dto.gameId !=null and dto.gameId!='' ">
+            AND    t1.game_category_id=#{dto.gameId}
+        </if>
+        <if test="dto.playType !=null and dto.playType!='' ">
+            AND    t1.play_type=#{dto.playType}
+        </if>
+        <if test="dto.dataType !=null ">
+            AND    t1.data_type=#{dto.dataType}
+        </if>
+        <if test="dto.siteId !=null and dto.siteId>=0">
+            AND    t1.site_id=#{dto.siteId}
+        </if>
+        <if test="dto.beginPeriods!=null and dto.beginPeriods!='' and dto.endPeriods!=null and dto.endPeriods!=''">
+            AND    t1.periods between #{dto.beginPeriods} and #{dto.endPeriods}
+        </if>
+        <if test="dto.createName !=null and dto.createName!=''">
+            AND    t2.user_name=#{dto.createName}
+        </if>
+        <if test="dto.contractName !=null and dto.contractName!=''">
+            AND    t5.user_name=#{dto.contractName}
+        </if>
+        <if test="dto.categoryId !=null and dto.categoryId!=''">
+            AND    t1.game_category_id=#{dto.categoryId}
+        </if>
+        <if test="dto.examineState !=null ">
+            AND    t1.examine_state=#{dto.examineState}
+        </if>
+        <if test="dto.userId !=null and dto.userId>=0">
+            AND    t1.user_id=#{dto.userId}
+        </if>
+        <if test="dto.toUserId !=null and dto.toUserId>=0">
+            AND    t1.to_user_id=#{dto.toUserId}
+        </if>
+
+    </select>
+
+    <select id="selectBatchIdsAndStatus" resultType="com.jq.user.bonus.dto.UserBonusDTO">
+
+        select <include refid="resultSql"/> from user_bonus ub where 1=1
+        <if test="examineState !=null ">
+            AND    ub.examine_state=#{examineState}
+        </if>
+        <if test="ids !=null and ids.size>0">
+            AND    ub.id IN
+            <foreach collection="ids" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+    </select>
+
+
+    <insert id="insertBatch" parameterType="java.util.List">
+        INSERT INTO `user_bonus` (
+        `id`,
+        `game_id`,
+        `game_category_id`,
+        `play_type`,
+        `to_user_id`,
+        `user_id`,
+        `periods`,
+        `all_betting_amount`,
+        `all_betting_number`,
+        `rebate`,
+        `examine_state`,
+        `win_amount`,
+        `team_make_water`,
+        `win_lose`,
+        `activity`,
+        `actual_win_lose`,
+        `bonus`,
+        `auditor_id`,
+        `create_time`,
+        `create_by`,
+        `update_time`,
+        `update_by`,
+        `is_del`,
+        `data_type`,
+        `remark`,
+        `site_id`,
+        `main_id`,
+        `site_code`,
+        `bonus_cycle`
+        )
+        VALUES
+        <foreach collection="list" item="bonus" separator="," >
+            (#{bonus.id},
+            #{bonus.gameId},
+            #{bonus.gameCategoryId},
+            #{bonus.playType},
+            #{bonus.toUserId},
+            #{bonus.userId},
+            #{bonus.periods},
+            #{bonus.allBettingAmount},
+            #{bonus.allBettingNumber},
+            #{bonus.rebate},
+            #{bonus.examineState},
+            #{bonus.winAmount},
+            #{bonus.teamMakeWater},
+            #{bonus.winLose},
+            #{bonus.activity},
+            #{bonus.actualWinLose},
+            #{bonus.bonus},
+            #{bonus.auditorId},
+            #{bonus.createTime},
+            #{bonus.createBy},
+            #{bonus.updateTime},
+            #{bonus.updateBy},
+            #{bonus.isDel},
+            #{bonus.dataType},
+            #{bonus.remark},
+            #{bonus.siteId},
+            #{bonus.mainId},
+            #{bonus.siteCode},
+            #{bonus.bonusCycle}
+            )
+        </foreach>
+    </insert>
+
+    <select id="getTotalBonus" resultType="long">
+        SELECT
+	      SUM(bonus)
+        FROM
+	      user_bonus ub
+        WHERE
+        	ub.is_del = 0
+        AND ub.examine_state = 2
+        AND ub.to_user_id = #{userId}
+        <if test="dataType !=null ">
+            AND    ub.data_type=#{dataType}
+        </if>
+    </select>
+
+    <select id="getTotalMakeWater" parameterType="long" resultType="long">
+        SELECT
+           sum(team_make_water)
+        FROM user_bonus
+        WHERE is_del= 0 AND examine_state = 2 and to_user_id = #{userId}
+    </select>
+
+
+    <select id="selectDailyBonus" resultType="long">
+        SELECT
+            sum(ub.bonus)
+        FROM
+            user_bonus ub
+        WHERE
+            ub.is_del = 0
+        AND ub.data_type = #{dataType}
+        <choose>
+            <when test="ids!=null and ids.size>0">
+                AND ub.to_user_id IN
+                <foreach collection="ids" item="id" separator="," open="(" close=")">
+                    #{id}
+                </foreach>
+            </when>
+            <otherwise>
+                AND ub.to_user_id=#{toUserId}
+            </otherwise>
+        </choose>
+        <if test="gameCategoryId!=null and gameCategoryId!=''">
+            AND ub.game_category_id=#{gameCategoryId}
+        </if>
+        <if test="playType!=null and playType!=''">
+            AND ub.play_type=#{playType}
+        </if>
+        AND ub.periods IN
+        <foreach collection="countPeriods" item="periods" separator="," open="(" close=")">
+            #{periods}
+        </foreach>
+    </select>
+
+    <select id="selectUsersDailyBonus" resultType="map">
+
+        	SELECT
+                ub.to_user_id AS toUserId,
+                sum(ub.bonus) AS dailyBonus
+            FROM
+                user_bonus ub
+            WHERE
+                ub.is_del = 0
+            AND ub.examine_state = 2
+            <if test="dataType!=null">
+                AND ub.data_type = #{dataType}
+            </if>
+            <if test="ids!=null and ids.size>0">
+                AND ub.to_user_id IN
+                <foreach collection="ids" item="id" separator="," open="(" close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="beginTime!=null and beginTime!='' ">
+                AND ub.create_time <![CDATA[  >=  ]]> #{beginTime}
+            </if>
+            <if test="endTime!=null and endTime!='' ">
+                AND ub.create_time <![CDATA[  <=  ]]> #{endTime}
+            </if>
+
+
+
+            GROUP BY
+                ub.to_user_id;
+
+    </select>
+
+</mapper>

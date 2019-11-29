@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.jq</groupId>
+		<artifactId>user</artifactId>
+		<version>3.0.0-SNAPSHOT</version>
+	</parent>
+
+	<artifactId>user-api</artifactId>
+	<packaging>jar</packaging>
+	<name>user-api</name>
+
+	<dependencies>
+		<!--引入liying-common包 启用公用pageinfo与apiresult-->
+		<dependency>
+			<groupId>com.liying</groupId>
+			<artifactId>liying-common</artifactId>
+		</dependency>
+
+		<!--引入framework-core包 启用公用openfeign okhttp-->
+		<dependency>
+			<groupId>com.jq.boot</groupId>
+			<artifactId>feign-spring-boot-starter</artifactId>
+		</dependency>
+
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

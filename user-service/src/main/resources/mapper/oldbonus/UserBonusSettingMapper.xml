@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.oldbonus.dao.UserBonusSettingDao">
+
+    <select id="queryBonusSetByLevel" resultType="map">
+        SELECT
+        ubm.id as mId,
+        ubs.id as id,
+        ubm.*,
+        ubs.*
+        FROM user_bonus_setting AS ubs
+        RIGHT JOIN user_bonus_main AS ubm
+        ON ubm.id = ubs.main_id
+        WHERE ubm.is_del = 0 and ubs.is_del = 0
+        AND ubm.setting_type = #{settingType}
+        <if test="rebateLevel != null and rebateLevel != ''">
+            AND ubm.rebate_level = #{rebateLevel}
+        </if>
+        <if test="siteId !=null and siteId != ''">
+            and ubm.site_id = #{siteId}
+        </if>
+        ORDER BY ubs.rebate ASC,ubs.valid_member ASC,ubs.team_daily_amount ASC,ubs.team_actual_lose ASC
+    </select>
+
+    <select id="queryBonusSettingByMainId" resultType="map">
+        SELECT
+        a.id AS mainId,
+        b.id AS settingId
+        FROM user_bonus_main AS a LEFT JOIN user_bonus_setting AS b ON a.id = b.main_id
+        WHERE b.main_id = #{mainId} AND b.rebate = #{rebate}
+        AND b.valid_member = #{validMember} AND a.is_del = 0 AND b.is_del = 0
+        <if test="sonId !=null and sonId>=0">
+            AND b.id != #{sonId}
+        </if>
+        <if test="playType !=null and playType != ''">
+            AND a.play_type = #{playType}
+        </if>
+        <if test="gameCategoryId !=null and gameCategoryId != ''">
+            AND a.game_category_id = #{gameCategoryId}
+        </if>
+        <if test="rebateLevel !=null and rebateLevel != ''">
+            AND a.rebate_level = #{rebateLevel}
+        </if>
+        <if test="dailyAmount !=null and dailyAmount != ''">
+            AND b.team_daily_amount = #{dailyAmount}
+        </if>
+        <if test="actualLose !=null and actualLose != ''">
+            AND b.team_actual_lose = #{actualLose}
+        </if>
+        <if test="bonusMode == 0">
+            <if test="daysPer != 0">
+                AND b.days_per = #{daysPer}
+            </if>
+        </if>
+        <if test="bonusMode == 1">
+            <if test="bonus != null">
+                AND b.bonus = #{bonus}
+            </if>
+        </if>
+        <if test="ykPer != 0">
+            AND b.yk_per = #{ykPer}
+        </if>
+    </select>
+
+    <select id="querySettingByMainId" resultType="com.jq.user.oldbonus.entity.UserBonusSettingEntity">
+        SELECT * from user_bonus_setting where 1=1
+        <if test="isDel != null">
+            AND is_del  = #{isDel}
+        </if>
+        <if test="mainId != null and mainId>=0">
+            AND main_id = #{mainId}
+        </if>
+    </select>
+
+    <select id="queryUserBonusMainMultipleData" resultType="map">
+        SELECT ba.id AS id,
+        ba.create_time AS createTime,
+        ba.update_time AS updateTime,
+        ba.sign_status AS signStatus,
+        ba.game_category_id as game_category_id,
+        u.user_name AS userName,
+        u1.user_name AS toUserName,
+        u.site_id as siteId,
+        ba.distribute,
+        ba.remark
+        FROM user_bonus_main as ba
+        LEFT JOIN user u on ba.user_id = u.id
+        LEFT JOIN user u1 on ba.to_user_id = u1.id
+        WHERE ba.is_del = 0
+        <if test="siteId != null and siteId>=0">
+            AND ba.site_id = #{siteId}
+        </if>
+        <if test="settingType != null">
+            AND ba.setting_type = #{settingType}
+        </if>
+        <if test="mainId !=null and mainId>=0">
+            AND ba.id =#{mainId}
+        </if>
+        <if test="superAccount != null and superAccount != ''">
+            AND u.user_name = #{superAccount}
+        </if>
+        <if test="subAccount != null and subAccount != ''">
+            AND u1.user_name = #{subAccount}
+        </if>
+    </select>
+
+    <select id="queryUserBonusSettingApi" resultType="map">
+        SELECT ubs.id as id,
+        a.game_id,
+        a.game_category_id,
+        a.play_type,
+        a.to_user_id,
+        a.user_id,
+        a.rebate_level,
+        a.bonus_rule,
+        a.bonus_strategy,
+        a.bonus_cycle,
+        a.create_by,
+        a.create_time,
+        a.update_by,
+        a.update_time,
+        a.is_del,
+        a.distribute,
+        a.sign_status,
+        a.setting_type,
+        a.remark,
+        a.site_code,
+        a.site_id,
+        a.sign_time,
+        ubs.rebate,
+        ubs.bonus_mode,
+        ubs.valid_member,
+        ubs.team_daily_amount,
+        ubs.team_actual_lose,
+        ubs.bonus,
+        ubs.days_per,
+        ubs.yk_per,
+        ubs.main_id
+        from user_bonus_main as a
+        LEFT JOIN user_bonus_setting ubs
+        on a.id = ubs.main_id
+        WHERE ubs.is_del = 0
+        <if test="mainId != null and mainId>=0">
+            AND main_id = #{mainId}
+        </if>
+    </select>
+    <select id="querySettingByQy" resultType="map">
+        SELECT a.id as mainID,b.id as settingId FROM user_bonus_main as a LEFT JOIN  user_bonus_setting as b on a.id = b.main_id
+        WHERE b.main_id = #{mainId} AND a.is_del = 0 and b.is_del = 0 and
+        a.setting_type = 3
+        <if test="id != null and id>=0">
+            AND b.id != #{id}
+        </if>
+        <if test="teamDailyAmount != null and teamDailyAmount != ''">
+            AND b.team_daily_amount = #{teamDailyAmount}
+        </if>
+        <if test="validMember != null">
+            AND b.valid_member = #{validMember}
+        </if>
+        <if test="bonusMode == 0">
+            <if test="daysPer != 0">
+                AND b.days_per = #{daysPer}
+            </if>
+        </if>
+        <if test="bonusMode == 1 and bonus != null">
+            AND b.bonus = #{bonus}
+        </if>
+    </select>
+    <select id="querySettingByQyApi" resultType="map">
+        SELECT a.id as mainID,b.id as settingId FROM user_bonus_main as a LEFT JOIN  user_bonus_setting as b on a.id = b.main_id
+        WHERE b.main_id = #{mainId} AND a.is_del = 0 and b.is_del = 0 and
+              a.setting_type = 3
+        <if test="id != null and id>=0">
+            AND b.id != #{id}
+        </if>
+        <if test="teamDailyAmount != null and teamDailyAmount != ''">
+            AND b.team_daily_amount = #{teamDailyAmount}
+        </if>
+    </select>
+
+    <select id="queryBonusSetting" resultType="map">
+        SELECT
+        a.id AS mainId,
+        b.id AS settingId
+        FROM user_bonus_main AS a LEFT JOIN user_bonus_setting AS b ON a.id = b.main_id
+        WHERE b.main_id = #{mainId} AND b.rebate = #{rebate}
+        AND b.valid_member = #{validMember} AND a.is_del = 0 AND b.is_del = 0
+        <if test="sonId !=null and sonId>=0">
+            AND b.id != #{sonId}
+        </if>
+        <if test="playType !=null and playType != ''">
+            AND a.play_type = #{playType}
+        </if>
+        <if test="gameCategoryId !=null and gameCategoryId != ''">
+            AND a.game_category_id = #{gameCategoryId}
+        </if>
+        <if test="rebateLevel !=null and rebateLevel != ''">
+            AND a.rebate_level = #{rebateLevel}
+        </if>
+        <if test="dailyAmount !=null and dailyAmount != ''">
+            AND b.team_daily_amount = #{dailyAmount}
+        </if>
+        <if test="actualLose !=null and actualLose != ''">
+            AND b.team_actual_lose = #{actualLose}
+        </if>
+    </select>
+
+    <insert id="batchSaveUserBonusSetting">
+        INSERT INTO user_bonus_setting (
+        `id`,
+        `create_time`,
+        `create_by`,
+        `update_time`,
+        `update_by`,
+        `is_del`,
+        `remark`,
+        `rebate`,
+        `bonus_mode`,
+        `valid_member`,
+        `team_daily_amount`,
+        `team_actual_lose`,
+        `bonus`,
+        `days_per`,
+        `yk_per`,
+        `main_id`
+        )
+        VALUES
+        <foreach collection="list" separator="," index="index" item="entity" >
+            (#{entity.id},#{entity.createTime},#{entity.createBy},#{entity.updateTime},#{entity.updateBy},
+            #{entity.isDel},#{entity.remark},#{entity.rebate},#{entity.bonusMode},#{entity.validMember},
+            #{entity.teamDailyAmount},#{entity.teamActualLose},#{entity.bonus},#{entity.daysPer}
+            ,#{entity.ykPer},#{entity.mainId})
+        </foreach>
+
+    </insert>
+</mapper>

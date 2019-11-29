@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.score.dao.UserRankScoreDao">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.jq.user.score.entity.UserRankScoreEntity">
+        <id column="id" property="id" />
+        <result column="rankId" property="rank_id" />
+        <result column="scoreName" property="score_name" />
+        <result column="scoreCode" property="score_code" />
+        <result column="scoreVal" property="score_val" />
+        <result column="isEnable" property="is_enable" />
+
+        <result column="createTime" property="create_time" />
+        <result column="createBy" property="create_by" />
+        <result column="updateTime" property="update_time" />
+        <result column="updateBy" property="update_by" />
+        <result column="remark" property="remark" />
+        <result column="isDel" property="is_del" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, name
+    </sql>
+
+</mapper>

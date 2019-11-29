@@ -1,0 +1,802 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.customer.dao.UserDao">
+    <select id="queryDemoUserPage" resultType="map">
+        SELECT
+        CAST(u.id AS CHAR ) as id,
+        u.user_name as userName,
+        u.`status`,
+        u.user_rank_id as userRankId,
+        u.login_count as loginCount,
+        u.site_code as siteCode,
+        date_format(u.create_time, '%Y-%m-%d %H:%i:%s') as createTime,
+        ui.real_name as realName,
+        ure.is_proxy as isProxy
+        FROM
+        user AS u LEFT JOIN user_info AS ui on u.id = ui.id
+        LEFT JOIN user_rebate AS ure on u.id = ure.id
+        WHERE u.is_demo= 1 AND u.is_del = 0
+        <if test="loginBeginTime != null and loginBeginTime != ''">
+            AND last_login_time >= #{loginBeginTime}
+        </if>
+        <if test="loginEndTime != null and loginEndTime !=''">
+            AND last_login_time &lt; #{loginBeginTime}
+        </if>
+        <if test="orderBeginTime != null and orderBeginTime !=''">
+            AND last_playtime >= #{orderBeginTime}
+        </if>
+        <if test="orderEndTime != null and orderEndTime != ''">
+            AND last_playtime &lt; #{orderBeginTime}
+        </if>
+        <if test="siteId != 0">
+            AND u.site_id = #{siteId}
+        </if>
+    </select>
+
+    <select id="queryTestUserPage" resultType="map" parameterType="map">
+        SELECT
+        CAST(u.id AS CHAR) as id,
+        date_format(u.create_time, '%Y-%m-%d %H:%i:%s') as createTime,
+        u.user_name as userName,
+        u.user_rank_id as userRankId,
+        u.`status`,
+        u.site_id as siteId,
+        u.login_count as loginCount,
+        u.remark,
+        u.last_login_ip as lastLoginIp,
+        ui.real_name as realName,
+        ui.reg_ip as regIp,
+        ui.reg_source as regSource,
+        ur.is_proxy as isProxy,
+        ifnull(upn.sub_level_count,0) as subLevelCount,
+        up.high_user_name as highLevelAccount,
+        up.high_user_id as highLevelId,
+        upl.level
+        FROM user as u left join user_rebate as ur on u.id = ur.id
+            LEFT JOIN (
+            SELECT
+            high_user_id,
+            count(*) AS sub_level_count
+            FROM user_proxy
+            WHERE site_id = #{map.siteId} AND `level` != 0
+            GROUP BY high_user_id
+            ) upn
+            on u.id = upn.high_user_id
+            LEFT JOIN (
+            select
+            user_id,
+            high_user_id,
+            high_user_name,
+            site_id from user_proxy
+            WHERE user_proxy.site_id = #{map.siteId}
+                AND level = 1
+            GROUP BY user_id
+             ) up
+            on u.id = up.user_id
+            JOIN (
+            select user_id,`level` from user_proxy
+            WHERE site_id = #{map.siteId}
+            AND high_user_name = 'default'
+            <if test="map.level != null">
+                and `level` = #{map.level}
+            </if>
+            GROUP BY user_id
+            ) upl on upl.user_id = u.id
+        left join user_info as ui on u.id = ui.id
+        where is_del = 0 and is_demo = 2
+        <if test="map.userRankId != null ">
+            and u.user_rank_id = #{map.userRankId}
+        </if>
+        <if test="map.status != null">
+            and u.status =#{map.status}
+        </if>
+        <if test="map.siteId != null ">
+            and u.site_id =#{map.siteId}
+        </if>
+        <if test="map.searchType != null and map.searchType != ''">
+            <choose>
+                <when test="map.searchType == 0">
+                    <if test="map.searchName != null and map.searchName !=''">
+                        and u.user_name = #{map.searchName}
+                    </if>
+                </when>
+                <when test="map.searchType == 1">
+                    <if test="map.searchName != null and map.searchName !=''">
+                        and u.user_name LIKE CONCAT('%','${map.searchName}','%' )
+                    </if>
+                </when>
+                <when test="map.searchType == 2">
+                    <if test="map.searchName != null and map.searchName !=''">
+                        and binary ui.real_name = #{map.searchName}
+                    </if>
+                </when>
+            </choose>
+        </if>
+        <if test="map.isProxy != null ">
+            and ur.is_proxy = #{map.isProxy}
+        </if>
+        <if test="map.highLevelName != null and map.highLevelName != ''">
+            and up.high_user_name = #{map.highLevelName}
+        </if>
+        <if test="map.ip != null and map.ip !=''">
+            and u.last_login_ip = #{map.ip}
+        </if>
+        <if test="map.dateType != null and map.dateType != ''">
+            <choose>
+                <when test="map.dateType == 0">
+                    <if test="(map.beginTime != null and map.beginTime != '') or (map.endTime != null and map.endTime != '')">
+                        and u.create_time BETWEEN #{map.beginTime} AND #{map.endTime}
+                    </if>
+                </when>
+                <when test="map.dateType == 1 ">
+                    <if test="(map.beginTime != null and map.beginTime != '') or (map.endTime != null and map.endTime != '')">
+                        and u.update_time BETWEEN #{map.beginTime} AND #{map.endTime}
+                    </if>
+                </when>
+                <when test="map.dateType == 2">
+                    <if test="(map.beginTime != null and map.beginTime != '') or (map.endTime != null and map.endTime != '')">
+                        and u.last_login_time BETWEEN #{map.beginTime} AND #{map.endTime}
+                    </if>
+                </when>
+            </choose>
+        </if>
+        <if test="map.regResource != null and map.regResource != ''">
+            and ui.reg_source = #{map.regResource}
+        </if>
+        <if test="map.doMain != null and map.doMain !=''">
+            and ui.reg_url = #{map.doMain}
+        </if>
+    </select>
+
+    <select id="confirmExistUserName" resultType="com.jq.user.customer.entity.UserEntity">
+        SELECT *
+        FROM user
+        WHERE site_id = #{siteId} AND user_name = #{userName} AND is_del = 0;
+    </select>
+
+    <select id="findById" parameterType="long" resultType="com.jq.user.customer.entity.UserEntity">
+        SELECT *
+        FROM `user`
+        WHERE id = #{id} AND is_del = 0;
+    </select>
+
+    <select id="findUserNameById" parameterType="long" resultType="String">
+        SELECT user_name
+        FROM `user`
+        WHERE id = #{id} AND is_del = 0;
+    </select>
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.jq.user.customer.entity.UserWrapper">
+    </resultMap>
+    <select id="selectByUserName" parameterType="String" resultType="com.jq.user.customer.entity.UserEntity">
+        SELECT *
+        FROM `user`
+        WHERE user_name LIKE '%${userName}%'
+    </select>
+
+    <select id="findByUserName" resultType="com.jq.user.customer.entity.UserEntity">
+        SELECT *
+        FROM `user`
+        WHERE `user_name` = #{userName} AND site_id = #{siteId} AND is_del = 0
+    </select>
+
+    <select id="queryUserByModel" resultMap="BaseResultMap">
+        select
+        u.create_time as create_time,
+        CAST(u.id AS CHAR) as id,
+        u.user_name as login_name,
+        ui.real_name as real_name,
+        u.user_rank_id as rank_id,
+        u.`status` as status,
+        u.site_id as site_id,
+        u.site_code as siteCode,
+        u.login_count as login_count,
+        urb.is_proxy as is_proxy,
+        ifnull(upn.sub_level_count,0) as sub_count,
+        up.high_user_name as high_account,
+        up.high_user_id as high_id,
+        upl.`level` as `level`,
+        u.remark as remark,
+        ui.reg_ip as reg_ip,
+        u.last_login_ip as last_login_ip,
+        ui.reg_source as reg_source,
+        ur.rank_level as rank_level,
+        ifnull(vus.is_valid,1) as isValid
+        from `user` as u
+        left join user_rebate as urb
+        on u.id = urb.id
+        left join user_info as ui
+        on u.id = ui.id
+        LEFT JOIN user_rank as ur
+        on u.user_rank_id = ur.id
+            LEFT JOIN (SELECT
+            high_user_id,
+            count(*) AS sub_level_count
+            FROM user_proxy
+            WHERE site_id = #{map.siteId} AND `level` != 0
+            GROUP BY high_user_id ) upn
+            on u.id = upn.high_user_id
+        <if test="map.searchType == 7">
+        LEFT JOIN  user_bank ub
+        on u.id = ub.user_id
+        </if>
+            LEFT JOIN  (select
+            user_id,
+            high_user_id,
+            high_user_name,
+            site_id from user_proxy
+            WHERE user_proxy.site_id = #{map.siteId}
+            AND `level` = 1
+                GROUP BY user_id) up
+            on u.id = up.user_id
+            JOIN (select user_id,`level` from user_proxy
+            WHERE site_id = #{map.siteId}
+            AND high_user_name = 'default'
+            <if test="map.level != null">
+                and `level` = #{map.level}
+            </if>
+            GROUP BY user_id) upl
+        on u.id = upl.user_id
+        LEFT JOIN valid_user_statistics vus
+        ON  u.id = vus.user_id
+        where u.is_del = 0 and u.is_demo = 0
+        <if test="map.siteId != null">
+            AND u.site_id = #{map.siteId}
+        </if>
+        <if test="map.isProxy != null">
+            and urb.`is_proxy` = #{map.isProxy}
+        </if>
+
+        <if test="map.rankLevel !=null">
+            and ur.rank_level = #{map.rankLevel}
+        </if>
+        <if test="map.status != null">
+            and u.`status` = #{map.status}
+        </if>
+        <if test="map.highLevelId !=null">
+            and up.high_user_id = #{map.highLevelId}
+        </if>
+        <if test="map.highLevelName !=null and map.highLevelName != ''">
+            and up.high_user_name = #{map.highLevelName}
+        </if>
+        <if test="map.regSource !=null and map.regSource !=''">
+            and ui.`reg_source` = #{map.regSource}
+        </if>
+        <if test="map.regIp!=null and regIp != ''">
+            AND ui.`reg_ip` = #{map.regIp}
+        </if>
+        <if test=" map.lastLoginIp != null and map.lastLoginIp != '' ">
+            AND u.`last_login_ip` = #{map.lastLoginIp}
+        </if>
+        <if test="map.rebateType != null and map.rebateType != ''">
+            <if test="map.rebateType == 'gpc_rebate'"> and gpc_rebate >= #{map.minRebate} and gpc_rebate &lt;= #{map.maxRebate}</if>
+            <if test="map.rebateType == 'flc_rebate'"> and flc_rebate >= #{map.minRebate} and flc_rebate &lt;= #{map.maxRebate}</if>
+            <if test="map.rebateType == 'tycp_rebate'"> and tycp_rebate >= #{map.minRebate} and tycp_rebate &lt;= #{map.maxRebate}</if>
+            <if test="map.rebateType == 'qt_rebate'"> and qt_rebate >= #{map.minRebate} and qt_rebate &lt;= #{map.maxRebate}</if>
+            <if test="map.rebateType == 'ty_rebate'"> and ty_rebate >= #{map.minRebate} and ty_rebate &lt;= #{map.maxRebate}</if>
+            <if test="map.rebateType == 'lhc_rebate0'"> and lhc_rebate0 >= #{map.minRebate} and lhc_rebate0 &lt;= #{map.maxRebate}</if>
+            <if test="map.rebateType == 'lhc_rebate1'"> and lhc_rebate1 >= #{map.minRebate} and lhc_rebate1 &lt;= #{map.maxRebate}</if>
+            <if test="map.rebateType == 'lhc_rebate2'"> and lhc_rebate2 >= #{map.minRebate} and lhc_rebate2 &lt;= #{map.maxRebate}</if>
+            <if test="map.rebateType == 'lhc_rebate3'"> and lhc_rebate3 >= #{map.minRebate} and lhc_rebate3 &lt;= #{map.maxRebate}</if>
+            <if test="map.rebateType == 'dpc_rebate'"> and dpc_rebate >= #{map.minRebate} and dpc_rebate &lt;= #{map.maxRebate}</if>
+        </if>
+        <if test="map.keyword !=null and map.keyword !=''">
+            <if test=" map.searchType == 0">and u.user_name = #{map.keyword}</if>
+            <if test=" map.searchType == 1">and u.user_name LIKE '%${map.keyword}%'</if>
+            <if test=" map.searchType == 2">AND binary from_base64(ui.real_name) = #{map.keyword}</if>
+            <if test=" map.searchType == 3">AND from_base64(ui.we_chat) = #{map.keyword}</if>
+            <if test=" map.searchType == 4">AND from_base64(ui.qq) = #{map.keyword}</if>
+            <if test=" map.searchType == 5">AND from_base64(ui.mobile) = #{map.keyword}</if>
+            <if test=" map.searchType == 6">AND from_base64(ui.email) = #{map.keyword}</if>
+            <if test=" map.searchType == 7">AND from_base64(ub.card_no) = #{map.keyword} and ub.is_del = 0 </if>
+        </if>
+        <if test="map.beginTime !=null and map.beginTime !='' and map.endTime!=null and map.endTime !=''">
+            <if test=" map.dateType == 1">AND u.create_time BETWEEN #{map.beginTime} and #{map.endTime}</if>
+            <if test=" map.dateType == 2">AND u.`update_time` BETWEEN #{map.beginTime} and #{map.endTime}</if>
+            <if test=" map.dateType == 3">AND u.`last_login_time` BETWEEN #{map.beginTime} and #{map.endTime}</if>
+        </if>
+    </select>
+    <update id="deleteByUserId" parameterType="Long">
+        UPDATE user
+        SET is_del = 1
+        WHERE id = #{userId}
+    </update>
+
+    <update id="updateGameCategoryAndTime">
+        UPDATE user
+        SET last_category = #{category }, last_playtime = #{date}
+        WHERE id = #{userId} AND is_del = 0;
+    </update>
+
+    <select id="getUserLevelBySiteCode" resultType="com.jq.user.customer.entity.UserWrapper">
+        SELECT
+            CAST(u.id AS CHAR) AS user_id,
+            user_name,
+            rk.id              AS rank_Id,
+            rk.rank_name,
+            u.site_id as siteId
+        FROM user u
+            LEFT JOIN user_rank rk
+                ON u.user_rank_id = rk.id
+        WHERE u.site_code = #{siteCode} AND u.is_del = 0
+    </select>
+
+    <select id="queryUserIdByUserNameApi" resultType="long">
+        SELECT CAST(id AS CHAR) AS id
+        FROM user
+        WHERE user_name = #{userName}
+    </select>
+
+    <select id="selectUserType" resultType="com.jq.user.customer.dto.UserDTO">
+        select u.user_name as userName,
+        ur.is_proxy as isProxy
+        from user as u
+        LEFT JOIN user_rebate as ur
+        ON u.id = ur.id
+        WHERE u.is_del=0 and u.site_id=#{siteId} and u.id in
+        <foreach collection="list" item="ids" open="(" close=")" index="index" separator=",">
+            #{ids}
+        </foreach>
+    </select>
+
+    <select id="queryRegisterUserApi" resultType="com.jq.user.customer.dto.RegisterUserDTO">
+        SELECT
+            CAST(u.id AS CHAR)       AS id,
+            u.user_name              AS userName,
+            u.last_login_time        AS lastLoginTime,
+            u.last_login_ip          AS lastLoginIP,
+            u.status,
+            u.site_code              AS siteCode,
+            IFNULL(ui.real_name, '') AS realName,
+            up.high_user_name    AS highLevelAccount,
+            ur.is_proxy              AS isProxy
+        FROM user AS u LEFT JOIN user_rebate AS ur ON u.id = ur.id
+        LEFT JOIN (select user_id,high_user_name FROM  user_proxy WHERE level = 1 AND site_id = #{siteId} GROUP BY user_id) up
+        ON up.user_id = u.id
+            LEFT JOIN user_info AS ui ON u.id = ui.id
+        WHERE is_del = 0 AND is_demo = 0 AND u.create_time BETWEEN #{beginTime} AND #{endTime} AND u.site_id = #{siteId}
+    </select>
+
+    <select id="queryUserOnlineApi" resultType="map">
+        SELECT
+        CAST(u.id AS CHAR) as id,
+        u.user_name as userName,
+        u.site_code as siteCode,
+        u.last_login_time as lastLoginTime,
+        u.last_login_ip as lastLoginIP,
+        u.status,
+        ui.real_name as realName,
+        ifnull(up.high_user_name,'') AS highLevelAccount,
+        ur.is_proxy as isProxy
+        from user as u RIGHT JOIN user_token as ut on u.id = ut.id
+        LEFT JOIN user_rebate as ur on ur.id = ut.id
+        LEFT JOIN (select user_id,high_user_name FROM  user_proxy WHERE level = 1
+        <if test="siteId != null">
+            and site_id = #{siteId}
+        </if>
+        GROUP BY user_id) up
+        ON up.user_id = u.id
+        LEFT JOIN user_info as ui on ut.id = ui.id
+        where u.is_del = 0 and u.is_demo = 0 and ut.access_expire >= now()
+        <if test="siteId != null">
+            and u.site_id = #{siteId}
+        </if>
+        <if test="userName != null and userName !=''">
+            and u.user_name = #{userName}
+        </if>
+        <if test="type != null and type != '' and type != 0">
+
+            <if test="type == 1">
+                <if test="idList != null and idList.size() != 0">
+                    AND u.id NOT IN
+                    (
+                    <foreach collection="idList" item="thisId" separator=",">
+                        #{thisId}
+                    </foreach>
+                    )
+                </if>
+            </if>
+            <if test="type == 2">
+                <if test="idList != null and idList.size() != 0">
+                    AND u.id IN
+                    (
+                    <foreach collection="idList" item="thisId" separator=",">
+                        #{thisId}
+                    </foreach>
+                    )
+                </if>
+                <if test="idList == null or idList.size() == 0">
+                    AND u.id IN
+                    (0)
+                    /* idList为空时，查询不到任何值 */
+                </if>
+
+            </if>
+        </if>
+        ORDER BY u.last_login_time DESC
+    </select>
+
+    <select id="getOnlineCountApi" resultType="Integer">
+        SELECT count(u.id)
+        FROM user as u
+        RIGHT JOIN user_token as ut on u.id = ut.id
+        where is_del = 0
+        <if test="siteId != null">
+            and u.site_id = #{siteId}
+        </if>
+        <if test="idList != null">
+            and ut.id IN
+            (
+            <foreach collection="idList" item="thisId" separator=",">
+                #{thisId}
+            </foreach>
+            )
+        </if>
+        and u.is_demo = 0 and ut.access_expire >= now()
+    </select>
+
+    <update id="updateBatchUserStatus">
+        UPDATE user set status = #{status} WHERE is_del = 0 and id in (
+        <foreach collection="idList" item="thisId" separator=",">
+            #{thisId}
+        </foreach>
+        )
+    </update>
+
+    <select id="checkOutUserExcel" resultType="com.jq.user.customer.dto.UserDTO">
+        SELECT
+        u.id,
+        u.user_name,
+        u.status,
+        u.create_time,
+        u.last_login_time,
+        u.site_id,
+        u.update_time,
+        u.is_del,
+        u.is_demo,
+        urb.is_proxy,
+        up.high_user_id as highLevelId,
+        up.high_user_name as highLevelAccount,
+        upl.`level`,
+        urb.gpc_rebate,
+        urb.flc_rebate,
+        urb.tycp_rebate,
+        urb.qt_rebate,
+        urb.ty_rebate,
+        urb.lhc_rebate3,
+        urb.lhc_rebate2,
+        urb.lhc_rebate1,
+        urb.lhc_rebate0,
+        urb.dpc_rebate,
+        ur.rank_level,
+        ui.real_name,
+        ui.we_chat,
+        ui.qq,
+        ui.mobile,
+        ui.email,
+        ui.reg_ip,
+        ui.reg_source
+        from `user` as u
+        left join user_rebate as urb
+        on u.id = urb.id
+        left join user_info as ui
+        on u.id = ui.id
+        LEFT JOIN user_rank as ur
+        on u.user_rank_id = ur.id
+        <if test="searchType == 7">
+            LEFT JOIN user_bank ub
+            ON u.id = ub.user_id
+        </if>
+        LEFT JOIN (select
+        user_id,
+        high_user_id,
+        high_user_name,
+        site_id from user_proxy
+        WHERE user_proxy.site_id = #{siteId}
+        <if test="level == null">
+            AND level = 1
+        </if>
+        GROUP BY user_id) up
+        on u.id = up.user_id
+        JOIN (select user_id,`level` from user_proxy
+        WHERE site_id = #{siteId}
+        AND high_user_name = 'default'
+        <if test="level != null">
+            and `level` = #{level}
+        </if>
+        GROUP BY user_id) upl
+        on u.id = upl.user_id
+        where u.is_del = 0 and u.is_demo = 0
+        <if test="siteId !=null">
+            AND u.site_id = #{siteId}
+        </if>
+        <if test="isProxy != null">
+            and urb.`is_proxy` = #{isProxy}
+        </if>
+        <if test="rankLevel !=null ">
+            and ur.rank_level = #{rankLevel}
+        </if>
+        <if test="status != null ">
+            and u.`status` = #{status}
+        </if>
+        <if test="highLevelId !=null ">
+            and up.high_user_id = #{highLevelId}
+        </if>
+        <if test="highLevelName !=null and highLevelName != ''">
+            and up.high_user_name = #{highLevelName}
+        </if>
+        <if test="regSource !=null and regSource != ''">
+            and ui.`reg_source` = #{regSource}
+        </if>
+        <if test="regIp!=null and regIp != ''">
+            AND ui.`reg_ip` = #{regIp}
+        </if>
+        <if test=" lastLoginIp != null and lastLoginIp != '' ">
+            AND u.`last_login_ip` = #{lastLoginIp}
+        </if>
+        <if test="rebateType != null and rebateType != ''">
+            <if test="rebateType == 'gpc_rebate'"> and gpc_rebate >= #{minRebate} and gpc_rebate &lt;= #{maxRebate}</if>
+            <if test="rebateType == 'flc_rebate'"> and flc_rebate >= #{minRebate} and flc_rebate &lt;= #{maxRebate}</if>
+            <if test="rebateType == 'tycp_rebate'"> and tycp_rebate >= #{minRebate} and tycp_rebate &lt;= #{maxRebate}</if>
+            <if test="rebateType == 'qt_rebate'"> and qt_rebate >= #{minRebate} and qt_rebate &lt;= #{maxRebate}</if>
+            <if test="rebateType == 'ty_rebate'"> and ty_rebate >= #{minRebate} and ty_rebate &lt;= #{maxRebate}</if>
+            <if test="rebateType == 'lhc_rebate0'"> and lhc_rebate0 >= #{minRebate} and lhc_rebate0 &lt;= #{maxRebate}</if>
+            <if test="rebateType == 'lhc_rebate1'"> and lhc_rebate1 >= #{minRebate} and lhc_rebate1 &lt;= #{maxRebate}</if>
+            <if test="rebateType == 'lhc_rebate2'"> and lhc_rebate2 >= #{minRebate} and lhc_rebate2 &lt;= #{maxRebate}</if>
+            <if test="rebateType == 'lhc_rebate3'"> and lhc_rebate3 >= #{minRebate} and lhc_rebate3 &lt;= #{maxRebate}</if>
+            <if test="rebateType == 'dpc_rebate'"> and dpc_rebate >= #{minRebate} and dpc_rebate &lt;= #{maxRebate}</if>
+        </if>
+        <if test="keyword !=null and keyword !=''">
+            <if test=" searchType == 0">and u.user_name = #{keyword}</if>
+            <if test=" searchType == 1">and u.user_name LIKE '%${keyword}%'</if>
+            <if test=" searchType == 2">AND binary from_base64(ui.real_name) = #{keyword}</if>
+            <if test=" searchType == 3">AND from_base64(ui.we_chat) = #{keyword}</if>
+            <if test=" searchType == 4">AND from_base64(ui.qq) = #{keyword}</if>
+            <if test=" searchType == 5">AND from_base64(ui.mobile) = #{keyword}</if>
+            <if test=" searchType == 6">AND from_base64(ui.email) = #{keyword}</if>
+            <if test=" searchType == 7">AND from_base64(ub.card_no) = #{keyword} and ub.is_del = 0</if>
+        </if>
+        <if test="beginTime !=null and beginTime !='' and endTime!=null and endTime !=''">
+            <if test=" dateType == 1">AND u.create_time BETWEEN #{beginTime} and #{endTime}</if>
+            <if test=" dateType == 2">AND u.`update_time` BETWEEN #{beginTime} and #{endTime}</if>
+            <if test=" dateType == 3">AND u.`last_login_time` BETWEEN #{beginTime} and #{endTime}</if>
+        </if>
+    </select>
+
+    <update id="batchDeleteUserApi">
+        UPDATE `user`
+        SET is_del = 1
+        WHERE id IN ${idStr} AND `user`.is_demo = 1 AND `user`.site_id = #{siteId}
+    </update>
+    <select id="getUserNameListByIdList" parameterType="long" resultType="map">
+        SELECT id,user_name FROM user WHERE id IN
+        <foreach collection="list" index="index" item="idList" open="(" separator="," close=")">
+            #{idList}
+        </foreach>
+    </select>
+
+    <select id="queryUserLikeUserNameApi" resultType="com.jq.user.customer.dto.UserDTO">
+        SELECT * from `user` where user_name LIKE CONCAT('%','${userName}','%') and `user`.is_del = 0
+        <if test="siteCode != null and siteCode != ''">
+            AND user.site_code = #{siteCode}
+        </if>
+    </select>
+
+    <select id="getCountOfRegisterByTimeAndRegSourceApi" resultType="Integer">
+        SELECT count(*) from user u LEFT JOIN user_info ui on u.id = ui.id where u.is_del = 0 and is_demo = 0
+        and u.create_time BETWEEN #{startTime} and #{endTime}
+        <if test="regSource != null">
+            AND ui.reg_source = #{regSource}
+        </if>
+        <if test="siteCode != null and siteCode != ''">
+            AND u.site_code = #{siteCode}
+        </if>
+        <if test="idList != null and idList.size() != 0">
+            AND u.id IN (
+            <foreach collection="idList" item="thisId" separator=",">
+                #{thisId}
+            </foreach>
+            )
+        </if>
+    </select>
+
+    <select id="queryUserByListIdApi" resultType="com.jq.user.customer.dto.UserDTO">
+        SELECT * FROM `user` where id IN
+        (
+        <foreach collection="idList" item="thisId" separator=",">
+            #{thisId}
+        </foreach>
+        )
+    </select>
+
+    <select id="queryUserDTOByListIdApi" resultType="com.jq.user.customer.dto.UserDTO">
+        SELECT * from `user` where is_del = 0
+        <if test="siteId != null">
+            AND site_id = #{siteId}
+        </if>
+        <if test="isDemo != null">
+            AND is_demo = #{isDemo}
+        </if>
+        AND id in
+        (
+        <foreach collection="listId" item="thisId" separator=",">
+            #{thisId}
+        </foreach>
+        )
+    </select>
+
+
+    <select id="queryFilterIds" resultType="long">
+        SELECT id
+        FROM `user`
+        WHERE site_id = #{siteId} AND id not in
+        (
+        <foreach collection="idList" item="thisId" separator=",">
+            #{thisId}
+        </foreach>
+        )
+    </select>
+
+    <select id="getBanRebateUserList" resultType="com.jq.user.customer.dto.UserRebateDTO">
+        select u.id,u.user_name,u.site_id,u.remark,u.create_time,ur.ban_rebate_time,
+        gpc_rebate, flc_rebate, tycp_rebate, qt_rebate, ty_rebate,lhc_rebate3, lhc_rebate2,
+        lhc_rebate1,  lhc_rebate0, dpc_rebate
+        from user u
+        LEFT JOIN user_rebate ur
+            ON u.id = ur.id
+        <if test="map.searchType == 3">
+        LEFT JOIN user_info ui
+        ON u.id = ui.id
+        </if>
+        WHERE u.is_del = 0 AND u.is_demo = 0 AND ur.ban_rebate_time IS NOT null
+        AND u.site_id = #{map.siteId} AND ur.is_proxy = 1
+        <if test="map.keyword !=null and map.keyword !=''">
+            <if test="map.searchType == 1">AND  u.user_name = #{map.keyword} </if>
+            <if test="map.searchType == 2">AND u.user_name LIKE '%${map.keyword}%' </if>
+            <if test="map.searchType == 3"> AND  binary ui.real_name = #{map.keyword}  </if>
+        </if>
+        <if test="map.beginTime !=null and map.beginTime !='' and map.endTime!=null and map.endTime !=''">
+            <if test=" map.dateType == 1">
+                AND  u.`create_time` > #{map.beginTime} AND u.create_time &lt;= #{map.endTime}
+            </if>
+            <if test=" map.dateType == 2">
+                AND  ur.`ban_rebate_time` > #{map.beginTime} AND ur.ban_rebate_time &lt;= #{map.endTime}
+            </if>
+        </if>
+    </select>
+    
+    <select id="queryUserByIpApi" resultType="com.jq.user.customer.dto.UserDTO">
+        SELECT u.id,u.user_name,u.last_login_ip,u.site_code,u.last_login_time FROM user u where is_del = 0 and is_demo = 0
+        <if test="ip != null and ip !=''">
+            AND last_login_ip = #{ip}
+        </if>
+        <if test="siteCode != null and siteCode != ''">
+            AND site_code = #{siteCode}
+        </if>
+    </select>
+
+    <select id="countNewUserByDateGroup" resultType="map">
+        SELECT
+        DATE(u.create_time) date,
+        count(u.id) num
+        FROM user u
+        <if test="isProxy != null">
+        LEFT JOIN user_rebate ur on u.id = ur.id
+        </if>
+        WHERE u.create_time >= #{startTime} AND u.create_time &lt; #{endTime}  AND u.is_demo = 0 AND u.site_id = #{siteId}
+        <if test="isProxy == 0">
+          AND  ur.is_proxy = 0
+        </if>
+        <if test="isProxy == 1">
+          AND  ur.is_proxy = 1
+        </if>
+        GROUP BY DATE(create_time);
+    </select>
+
+    <select id="countNewUserByHourGroup" resultType="map">
+        SELECT
+        DATE_FORMAT(u.create_time,'%H:00') hour,
+        count(u.id) num
+        FROM user u
+        <if test="isProxy != null">
+            LEFT JOIN user_rebate ur on u.id = ur.id
+        </if>
+        WHERE date(u.create_time) = #{startDate}   AND u.is_demo = 0 AND u.site_id = #{siteId}
+        <if test="isProxy == 0">
+            AND  ur.is_proxy = 0
+        </if>
+        <if test="isProxy == 1">
+            AND  ur.is_proxy = 1
+        </if>
+        GROUP BY hour(create_time);
+    </select>
+
+    <select id="countNewUserByDate" resultType="int">
+        SELECT
+        count(u.id) num
+        FROM user u
+        <if test="isProxy != null">
+            LEFT JOIN user_rebate ur on u.id = ur.id
+        </if>
+        WHERE u.create_time >= #{startTime} AND u.create_time &lt; #{endTime}   AND u.is_demo = 0 AND u.site_id = #{siteId}
+        <if test="isProxy == 0">
+            AND  ur.is_proxy = 0
+        </if>
+        <if test="isProxy == 1">
+            AND  ur.is_proxy = 1
+        </if>
+    </select>
+
+    <select id="getIdListBySiteCodeAndIsDemoApi" resultType="long">
+        SELECT id from user where is_del = 0 and site_code = #{siteCode} and is_demo = #{isDemo}
+    </select>
+
+    <select id="queryUserInfo" resultType="map">
+        SELECT
+            u.id id,
+            u.site_id siteId,
+            u.site_code siteCode,
+            u.user_name userName,
+            u.is_demo isDemo,
+            ur.rank_name rankName,
+            date_format(u.create_time, '%Y-%m-%d %H:%i:%s') createTime,
+            date_format(u.last_login_time, '%Y-%m-%d %H:%i:%s') lastLoginTime,
+            ure.is_proxy
+            FROM user u
+                LEFT JOIN user_rank ur on u.user_rank_id = ur.id
+                LEFT JOIN user_rebate ure on ure.id = u.id
+        WHERE u.is_del = 0 and u.site_id = #{siteId}
+    </select>
+
+    <select id="getUserInfo" resultType="map">
+        SELECT
+            u.id id,
+            u.site_id siteId,
+            u.site_code siteCode,
+            u.user_name userName,
+            u.is_demo isDemo,
+            ur.rank_name rankName,
+            date_format(u.create_time, '%Y-%m-%d %H:%i:%s') createTime,
+            date_format(u.last_login_time, '%Y-%m-%d %H:%i:%s') lastLoginTime,
+            ure.is_proxy
+        FROM user u
+            LEFT JOIN user_rank ur on u.user_rank_id = ur.id
+            LEFT JOIN user_rebate ure on ure.id = u.id
+        WHERE u.is_del = 0 and u.id= #{id}
+    </select>
+
+    <select id="queryUserInfoByIdList" resultType="map">
+        SELECT
+        u.id id,
+        u.site_id siteId,
+        u.site_code siteCode,
+        u.user_name userName,
+        u.is_demo isDemo,
+        ur.rank_name rankName,
+        date_format(u.create_time, '%Y-%m-%d %H:%i:%s') createTime,
+        date_format(u.last_login_time, '%Y-%m-%d %H:%i:%s') lastLoginTime,
+        ure.is_proxy
+        FROM user u
+        LEFT JOIN user_rank ur on u.user_rank_id = ur.id
+        LEFT JOIN user_rebate ure on ure.id = u.id
+        WHERE u.is_del = 0 and u.id in
+        (
+        <foreach collection="idList" item="thisId" separator=",">
+            #{thisId}
+        </foreach>
+        )
+    </select>
+
+    <select id="queryCashInfo" resultType="map">
+        SELECT
+        u.id id,
+        ui.real_name realName
+        from user u left join user_info ui on u.id = ui.id
+        WHERE u.is_del = 0 and site_code = #{siteCode} and u.id in
+        (
+        <foreach collection="idList" item="thisId" separator=",">
+            #{thisId}
+        </foreach>
+        )
+    </select>
+</mapper>

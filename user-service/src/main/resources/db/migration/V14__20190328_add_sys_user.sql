@@ -1,0 +1,1 @@
+alter table sys_user add key_error_count bigint(1) DEFAULT 5 COMMENT '谷歌验证码输入错误次数';

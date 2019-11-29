@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.jq.framework</groupId>
+        <artifactId>framework-parent</artifactId>
+        <version>3.0.0-SNAPSHOT</version>
+    </parent>
+
+    <groupId>com.jq</groupId>
+    <artifactId>user</artifactId>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>user-service</module>
+        <module>user-api</module>
+    </modules>
+
+    <repositories>
+        <repository>
+            <id>nexus</id>
+            <name>nexus Repository</name>
+            <url>http://nexus.xm6f.com/repository/maven-public/</url>
+        </repository>
+    </repositories>
+
+	<pluginRepositories>
+        <pluginRepository>
+            <id>nexus</id>
+            <name>nexus Repository</name>
+            <url>http://nexus.xm6f.com/repository/maven-public/</url>
+        </pluginRepository>
+    </pluginRepositories>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration scan="true" scanPeriod="5 minutes" >
+    <contextName>platform</contextName>
+    <property name="APP_NAME" value="user" />
+    <property name="logs.dir" value="../logs" />
+    <property name="ENCODER_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS}|${HOSTNAME}|%level|${APP_NAME}|%class|%thread|%method|%line|%msg%n"/>
+    <!-- 时间戳|主机名|日志级别|模块名|类名|线程名|方法名|行号|日志内容
+    <property name="ENCODER_PATTERN" value="${HOSTNAME} ${APP_NAME} %d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{80} %L - %msg%n"/>
+    -->
+
+    <!-- 控制台输出 -->
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>
+                <!-- 时间戳|主机名|日志级别|模块名|类名|线程名|方法名|行号|日志内容 -->
+                <pattern>${ENCODER_PATTERN}</pattern>
+            </pattern>
+        </encoder>
+    </appender>
+
+    <!-- 按照每天生成日志文件 -->
+    <appender name="dailyfile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${logs.dir}/${APP_NAME}.log</file>
+        <encoder>
+            <charset>UTF-8</charset>
+            <pattern>${ENCODER_PATTERN}</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>
+                ${logs.dir}/${APP_NAME}.log.%d{yyyy-MM-dd}
+            </fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <appender name="logstash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <destination>192.168.11.240:4569</destination>
+        <encoder charset="UTF-8" class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"appname":"applog"}</customFields>
+        </encoder>
+        <connectionStrategy>
+            <roundRobin>
+                <connectionTTL>5 minutes</connectionTTL>
+            </roundRobin>
+        </connectionStrategy>
+    </appender>
+
+    <!-- all,debug,info,warn,error -->
+    <root>
+        <level value="info" />
+        <appender-ref ref="stdout" />
+        <appender-ref ref="dailyfile" />
+        <appender-ref ref="logstash" />
+    </root>
+
+    <logger name="com.jq" level="DEBUG" />
+    <logger name="org.springframework.web" level="INFO" />
+
+</configuration>

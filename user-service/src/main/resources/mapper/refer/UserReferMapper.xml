@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    <mapper namespace="com.jq.user.refer.dao.UserReferDao">
+
+
+    <sql id="UserReferResult">
+        CAST(ur.id  AS CHAR) as id,
+        CAST(ur.site_id  AS CHAR) as siteId,
+        ur.user_id AS userId,
+        ur.refer_code as referCode,
+        ur.refer_url AS referUrl,
+        ur.domain_url AS domainUrl,
+        ur.flc_rebate AS flcRebate,
+        ur.gpc_rebate AS gpcRebate,
+        ur.tycp_rebate AS tycpRebate,
+        ur.qt_rebate AS qtRebate,
+        ur.ty_rebate AS tyRebate,
+        ur.lhc_rebate3 AS lhcRebate3,
+        ur.lhc_rebate2 AS lhcRebate2,
+        ur.lhc_rebate1 AS lhcRebate1,
+        ur.lhc_rebate0 AS lhcRebate0,
+        ur.dpc_rebate AS dpcRebate,
+        ur.link_type AS linkType,
+        ur.is_proxy AS isProxy,
+        ur.is_app AS isApp,
+        ur.is_del AS isDel,
+        ur.is_enable AS isEnable,
+        ur.create_by AS createBy,
+        ur.use_count AS useCount,
+        DATE_FORMAT(ur.create_time,'%Y-%m-%d %H:%i:%s') AS createTime,
+        ur.update_by AS updateBy,
+        DATE_FORMAT(ur.update_time,'%Y-%m-%d %H:%i:%s') AS updateTime
+    </sql>
+
+
+    <select id="findAll" resultType="map">
+      <!--select u.user_name as username,ur.* from  user_refer ur  JOIN user u on u.id=ur.user_id;-->
+        select u.user_name AS userName,<include refid="UserReferResult"/> from user u   JOIN user_refer ur on u.id=ur.user_id where 1=1 and ur.site_id=#{siteId};
+    </select>
+
+
+
+    <select id="findByCondition" resultType="com.jq.user.refer.dto.UserReferDTO" parameterType="map">
+        select u.user_name AS userName,<include refid="UserReferResult"/>
+
+        from user u RIGHT JOIN user_refer ur on u.id=ur.user_id  WHERE 1=1
+        AND ur.is_del=0
+        <if test="map.userId !=null and map.userId>=0">
+            AND    ur.user_id=#{map.userId}
+        </if>
+        <if test="map.siteId !=null and map.siteId>=0">
+            AND   ur.site_id=#{map.siteId}
+        </if>
+        <if test="map.referCode !=null and map.referCode!=''">
+            AND    ur.refer_code=#{map.referCode}
+        </if>
+        <if test="map.isProxy !=null ">
+            AND    ur.is_proxy=#{map.isProxy}
+        </if>
+        <if test="map.domainUrl !=null and map.domainUrl!=''">
+            AND   ur.domain_url=#{map.domainUrl}
+        </if>
+        <if test="map.referUrl !=null and map.referUrl!=''">
+            AND   ur.refer_url=#{map.referUrl}
+        </if>
+        <if test="map.isEnable !=null">
+            AND   ur.is_enable=#{map.isEnable}
+        </if>
+        <if test="map.createTime !=null and map.createTime!=''">
+            AND   subString(ur.create_time,1,10)=subString(#{createTime},1,10)
+        </if>
+        <if test="map.startDate !=null and map.endDate !=null and map.startDate!='' and map.endDate!=''">
+            AND   ur.create_time BETWEEN #{map.startDate} AND  #{map.endDate}
+        </if>
+        <if test="map.userName !=null and map.userName!=''">
+            AND   u.user_name=#{map.userName}
+        </if>
+        <if test="map.rebateType!=null ">
+            <choose>
+              <when test="map.rebateType==1">
+                <if test="map.startRebate!=null and map.endRebate!=null ">
+                  AND ur.lhc_rebate0 BETWEEN #{map.startRebate} and #{map.endRebate}
+                </if>
+              </when>
+              <when test="map.rebateType==2">
+                <if test="map.startRebate!=null and map.endRebate!=null ">
+                      AND ur.lhc_rebate1 BETWEEN #{map.startRebate} and #{map.endRebate}
+                  </if>
+              </when>
+              <when test="map.rebateType==3">
+                  <if test="map.startRebate!=null and map.endRebate!=null ">
+                      AND ur.lhc_rebate2 BETWEEN #{map.startRebate} and #{map.endRebate}
+                  </if>
+              </when>
+              <when test="map.rebateType==4">
+                  <if test="map.startRebate!=null and map.endRebate!=null ">
+                      AND ur.lhc_rebate3 BETWEEN #{map.startRebate} and #{map.endRebate}
+                  </if>
+              </when>
+              <when test="map.rebateType==5">
+                  <if test="startRebate!=null and endRebate!=null ">
+                      AND ur.flc_rebate BETWEEN #{map.startRebate} and #{map.endRebate}
+                  </if>
+              </when>
+              <when test="map.rebateType==6">
+                  <if test="map.startRebate!=null and map.endRebate!=null ">
+                      AND ur.gpc_rebate BETWEEN #{map.startRebate} and #{map.endRebate}
+                  </if>
+              </when>
+              <when test="map.rebateType==7">
+                  <if test="map.startRebate!=null and map.endRebate!=null ">
+                      AND ur.tycp_rebate BETWEEN #{map.startRebate} and #{map.endRebate}
+                  </if>
+              </when>
+              <when test="map.rebateType==8">
+                  <if test="map.startRebate!=null and map.endRebate!=null ">
+                      AND ur.qt_rebate BETWEEN #{map.startRebate} and #{map.endRebate}
+                  </if>
+              </when>
+              <when test="map.rebateType==9">
+                  <if test="map.startRebate!=null and map.endRebate!=null ">
+                      AND ur.ty_rebate BETWEEN #{map.startRebate} and #{map.endRebate}
+                  </if>
+              </when>
+              <when test="map.rebateType==10">
+                  <if test="startRebate!=null and map.endRebate!=null ">
+                      AND ur.dpc_rebate BETWEEN #{map.startRebate} and #{map.endRebate}
+                  </if>
+              </when>
+
+            </choose>
+        </if>
+    </select>
+
+    <select id="selectByIdAndStatus" resultType="com.jq.user.refer.entity.UserReferEntity">
+        select <include refid="UserReferResult"/> FROM user_refer ur where
+        ur.id=#{id} AND ur.is_del=#{isDel}
+    </select>
+
+    <select id="selectByReferId" resultType="com.jq.user.refer.dto.UserReferDTO">
+        SELECT u.user_name AS userName,<include refid="UserReferResult"/>
+        FROM user_refer ur left JOIN user u on u.id=ur.user_id
+        WHERE ur.id=#{id}
+    </select>
+
+    <select id="getUserNameById" resultType="map" parameterType="list">
+        SELECT
+        ur.id as id,
+        u.user_name as userName
+        FROM
+        user_refer ur
+        LEFT JOIN user u ON ur.user_id = u.id
+        WHERE
+        ur.id IN (
+        <foreach collection="list" item="item" separator=",">
+            #{item}
+        </foreach>
+        )
+    </select>
+
+</mapper>

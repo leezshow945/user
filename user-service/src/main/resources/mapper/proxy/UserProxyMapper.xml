@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jq.user.proxy.dao.UserProxyDao">
+    <delete id="deleteUserProxy">
+        DELETE a FROM user_proxy AS a
+            JOIN user_proxy AS d
+                ON a.user_id = d.user_id
+            LEFT JOIN user_proxy AS x
+                ON x.high_user_id = d.high_user_id AND x.user_id = a.high_user_id
+        WHERE
+            d.high_user_id = #{sourceId} AND x.high_user_id IS NULL AND a.site_id =#{siteId};
+    </delete>
+    <select id="selectNewProxyToInsert" resultType="com.jq.user.proxy.entity.UserProxyEntity">
+        SELECT
+            dest.high_user_id,
+            dest.high_user_name,
+            `user`.user_id,
+            `user`.user_name,
+            dest.level + `user`.level + 1 as level,
+            dest.site_id,
+            dest.site_code,
+            user.create_time,
+            now() as update_time
+        FROM user_proxy AS dest
+            JOIN user_proxy AS `user`
+        WHERE `user`.high_user_id = #{sourceId}
+              AND dest.user_id = #{destId}
+              AND `user`.site_id = #{siteId};
+    </select>
+
+    <delete id="deleteForTransferBatch">
+        DELETE a FROM user_proxy AS a
+            JOIN user_proxy AS d
+                ON a.user_id = d.user_id
+            LEFT JOIN user_proxy AS x
+                ON x.high_user_id = d.high_user_id AND x.user_id = a.high_user_id
+        WHERE
+            d.high_user_id IN
+                    <foreach collection="list" item="id" index="index" separator="," open="(" close=")">
+                        #{id}
+                    </foreach>
+            AND x.high_user_id IS NULL AND a.site_id =#{siteId};
+    </delete>
+
+    <select id="selectForTransferBatch" resultType="com.jq.user.proxy.entity.UserProxyEntity">
+        SELECT
+            dest.high_user_id,
+            dest.high_user_name,
+            `user`.user_id,
+            `user`.user_name,
+            dest.level + `user`.level + 1 as level,
+            dest.site_id,
+            dest.site_code,
+            user.create_time,
+            now() as update_time
+        FROM user_proxy AS dest
+            JOIN user_proxy AS `user`
+        WHERE `user`.high_user_id IN
+                <foreach collection="list" item="id" index="index" separator="," open="(" close=")">
+                    #{id}
+                </foreach>
+              AND dest.user_id = #{destId}
+              AND `user`.site_id = #{siteId};
+    </select>
+
+    <insert id="insertBatch">
+        INSERT INTO user_proxy (id, high_user_id, user_name, high_user_name,
+        `level`, user_id, site_id, site_code, create_time, update_time)
+        VALUES
+        <foreach collection="list" separator="," index="index" item="entity" >
+            (#{entity.id},#{entity.highUserId},#{entity.userName},#{entity.highUserName},#{entity.level},
+            #{entity.userId},#{entity.siteId},#{entity.siteCode},#{entity.createTime},#{entity.updateTime} )
+        </foreach>
+
+    </insert>
+
+    <select id="getAllLevelBySiteId" resultType="map">
+        SELECT DISTINCT `level`
+        from user_proxy up
+            LEFT JOIN user u
+                on up.user_id = u.id
+        where up.site_id = #{siteId}
+              and up.`level` != 0
+            <if test="isDemo !=null" >
+                and u.is_demo = #{isDemo}
+            </if>
+    </select>
+
+    <select id="getTeamNumberByList" resultType="map">
+        SELECT
+            up.user_id userId,
+            up.high_user_id highUserId,
+            DATE_FORMAT(up.create_time, '%Y-%m-%d') createTime,
+            DATE_FORMAT(u.last_login_time, '%Y-%m-%d') lastLoginTime
+        FROM
+            user_proxy up
+            LEFT JOIN `user` u ON up.user_id = u.id
+        WHERE
+            up.high_user_id IN
+            <foreach collection="userIdList" item="id" index="index" separator="," open="(" close=")">
+                #{id}
+            </foreach>
+            AND up.site_id = #{siteId}
+    </select>
+
+    <select id="queryRegisterUserByProxyLineApi" resultType="map">
+        SELECT
+            u.id userId,
+            ur.is_proxy isProxy,
+            u.user_name userName,
+            up.high_user_name highUserName
+        from user_proxy up LEFT JOIN user u ON up.user_id = u.id LEFT JOIN user_rebate ur ON up.user_id = ur.id
+        WHERE up.high_user_id = #{id} AND u.is_del = 0 and u.create_time BETWEEN #{startTime} and #{endTime}
+    </select>
+</mapper>
